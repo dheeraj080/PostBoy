@@ -20,6 +20,10 @@ var (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "run" {
+		os.Exit(runCmd(os.Args[2:]))
+	}
+
 	showVersion := flag.Bool("version", false, "print version information and exit")
 	dataDir := flag.String("data-dir", "", "directory for config and history (default "+config.Dir()+")")
 	flag.Usage = func() {
@@ -28,6 +32,7 @@ func main() {
 Usage:
   postboy [flags]                 start the TUI
   postboy [flags] import <file>   import a Postman v2.1 collection
+  postboy run <collection>        execute a saved collection headlessly
 
 Flags:
 `)
