@@ -29,7 +29,7 @@ brew install dheeraj080/tap/postboy
 **Go**
 
 ```sh
-go install github.com/dheeraj080/PostBoy@latest
+go install github.com/dheeraj080/PostBoy/cmd/postboy@latest
 ```
 
 Or download a binary from the [releases page](https://github.com/dheeraj080/PostBoy/releases).

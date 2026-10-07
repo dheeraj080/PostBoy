@@ -9,7 +9,7 @@ before:
 
 builds:
   - id: postboy
-    main: .
+    main: ./cmd/postboy
     binary: postboy
     env:
       - CGO_ENABLED=0
