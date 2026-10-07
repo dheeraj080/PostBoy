@@ -95,7 +95,8 @@ type Request struct {
 	// entries with File set have a file path as Value.
 	Form []KeyValue `json:"form,omitempty"`
 	// BodyFile is the file path sent for BodyFile.
-	BodyFile string `json:"body_file,omitempty"`
+	BodyFile       string `json:"body_file,omitempty"`
+	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 }
 
 // Origin links the working draft to a saved request in a collection.

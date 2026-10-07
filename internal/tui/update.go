@@ -295,6 +295,14 @@ func (m *Model) startRequest() tea.Cmd {
 		env[k] = v
 	}
 	req := httpclient.FromConfig(m.currentRequest(), env, m.secrets)
+	if req.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), req.Timeout)
+		m.cancelReq = cancel
+	}
+	m.lastTimeout = m.timeout
+	if req.Timeout > 0 {
+		m.lastTimeout = req.Timeout
+	}
 	// Persist the draft so in-progress work survives a crash.
 	m.persistOrWarn()
 	id, client := m.reqID, m.client
@@ -334,7 +342,7 @@ func (m *Model) handleResponse(msg responseMsg) {
 			m.respBody = statusRedStyle.Render("✗ Request cancelled by user")
 		case errors.Is(msg.err, context.DeadlineExceeded):
 			m.status = "Timeout"
-			m.respBody = statusRedStyle.Render(fmt.Sprintf("✗ Request timed out after %s", m.timeout))
+			m.respBody = statusRedStyle.Render(fmt.Sprintf("✗ Request timed out after %s", m.lastTimeout))
 		default:
 			m.status = "Error"
 			m.respBody = statusRedStyle.Render(fmt.Sprintf("✗ %v", msg.err))

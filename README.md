@@ -15,7 +15,8 @@ A keyboard-driven terminal HTTP/API client built with [Bubble Tea](https://githu
 - Request history (SQLite) with sensitive headers redacted
 - JSON pretty-printing and syntax highlighting (JSON, HTML, XML)
 - Response tools: search, JSON path filter ([gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md)), raw view, copy, save to file; binary-safe
-- Request timeout and cancellation
+- Request timeout and cancellation; optional per-request `timeout_seconds`
+- HTTP options in `config.json`: `insecure_skip_verify`, `disable_redirects`, `proxy_url`, `enable_cookies`
 
 ## Install
 

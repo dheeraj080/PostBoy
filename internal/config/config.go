@@ -42,11 +42,15 @@ type KeyValue struct {
 
 // Config is the on-disk configuration.
 type Config struct {
-	Version        int           `json:"version"`
-	Environments   []Environment `json:"environments"`
-	ActiveEnv      int           `json:"active_env"`
-	SecretNames    []string      `json:"secret_names"`
-	TimeoutSeconds int           `json:"timeout_seconds"`
+	Version            int           `json:"version"`
+	Environments       []Environment `json:"environments"`
+	ActiveEnv          int           `json:"active_env"`
+	SecretNames        []string      `json:"secret_names"`
+	TimeoutSeconds     int           `json:"timeout_seconds"`
+	InsecureSkipVerify bool          `json:"insecure_skip_verify,omitempty"`
+	DisableRedirects   bool          `json:"disable_redirects,omitempty"`
+	ProxyURL           string        `json:"proxy_url,omitempty"`
+	EnableCookies      bool          `json:"enable_cookies,omitempty"`
 
 	// Draft is the request currently open in the editor.
 	Draft Request `json:"draft"`

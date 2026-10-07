@@ -115,13 +115,14 @@ type Model struct {
 	lastTarget   string
 
 	// Configuration and services.
-	cfg      config.Config
-	dir      string
-	secrets  *secrets.Store
-	store    *store.Store
-	ready    bool
-	timeout  time.Duration
-	envIndex int
+	cfg         config.Config
+	dir         string
+	secrets     *secrets.Store
+	store       *store.Store
+	ready       bool
+	timeout     time.Duration
+	envIndex    int
+	lastTimeout time.Duration
 
 	// In-flight request.
 	loading   bool
@@ -288,6 +289,7 @@ func (m *Model) applyConfig(c config.Config, cols []collection.Collection) {
 	m.cfg = c
 	m.envIndex = c.ActiveEnv
 	m.timeout = c.Timeout()
+	m.client = httpclient.NewWithConfig(c)
 	m.collections = cols
 
 	var origin *config.Origin

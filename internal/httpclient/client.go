@@ -4,10 +4,12 @@ package httpclient
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
@@ -48,6 +50,7 @@ type Request struct {
 	BodyMode config.BodyMode
 	Form     []config.KeyValue
 	BodyFile string
+	Timeout  time.Duration // zero uses the client's usual context timeout
 }
 
 // FromConfig builds a Request from a saved/edited request.
@@ -57,6 +60,7 @@ func FromConfig(r config.Request, env map[string]string, secrets interp.SecretGe
 		Headers: r.Headers, Params: r.Params, Auth: r.Auth,
 		BodyMode: r.BodyMode, Form: r.Form, BodyFile: r.BodyFile,
 		Env: env, Secrets: secrets,
+		Timeout: time.Duration(r.TimeoutSeconds) * time.Second,
 	}
 }
 
@@ -144,18 +148,44 @@ type Client struct {
 	hc *http.Client
 }
 
+// NewWithConfig builds a Client from PostBoy config. Proxy and redirect/cookie/TLS
+// options are honored; New is equivalent to defaults.
+func NewWithConfig(cfg config.Config) *Client {
+	var proxy func(*http.Request) (*url.URL, error)
+	if cfg.ProxyURL != "" {
+		if u, err := url.Parse(cfg.ProxyURL); err == nil {
+			proxy = http.ProxyURL(u)
+		} else {
+			proxy = http.ProxyFromEnvironment
+		}
+	} else {
+		proxy = http.ProxyFromEnvironment
+	}
+	tr := &http.Transport{
+		Proxy:                 proxy,
+		MaxIdleConns:          10,
+		IdleConnTimeout:       60 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: cfg.InsecureSkipVerify}, //nolint:gosec // user-selected for self-signed endpoints
+	}
+	var jar http.CookieJar
+	if cfg.EnableCookies {
+		jar, _ = cookiejar.New(nil)
+	}
+	hc := &http.Client{Transport: tr, Jar: jar}
+	if cfg.DisableRedirects {
+		hc.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+	return &Client{hc: hc}
+}
+
 // New returns a Client with sensible transport defaults.
 func New() *Client {
-	return &Client{hc: &http.Client{
-		Transport: &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
-			MaxIdleConns:          10,
-			IdleConnTimeout:       60 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-			ForceAttemptHTTP2:     true,
-		},
-	}}
+	return NewWithConfig(config.Default())
 }
 
 // NewWithHTTPClient wraps an existing *http.Client (useful for tests).

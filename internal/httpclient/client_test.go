@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -295,6 +296,96 @@ func TestBodyFile(t *testing.T) {
 	}
 	if gotCT != "application/octet-stream" || string(gotBody) != string([]byte{1, 2, 3, 4}) {
 		t.Fatalf("ct=%q body=%v", gotCT, gotBody)
+	}
+}
+
+func TestInsecureSkipVerify(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	defer ts.Close()
+	if _, err := NewWithConfig(config.Default()).Do(context.Background(), Request{Method: http.MethodGet, URL: ts.URL}); err == nil {
+		t.Fatal("expected TLS certificate error")
+	}
+	c := aConfig()
+	c.InsecureSkipVerify = true
+	res, err := NewWithConfig(c).Do(context.Background(), Request{Method: http.MethodGet, URL: ts.URL})
+	if err != nil || res.StatusCode != 200 {
+		t.Fatalf("insecure GET: %v %v", res, err)
+	}
+}
+
+func aConfig() config.Config {
+	return config.Config{TimeoutSeconds: 15, Environments: []config.Environment{}, SecretNames: []string{}}
+}
+
+func TestRedirectPolicy(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "/target", http.StatusFound)
+			return
+		}
+		fmt.Fprintln(w, "target")
+	}))
+	defer srv.Close()
+	res, err := New().Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/redirect"})
+	if err != nil || res.StatusCode != 200 || !strings.Contains(string(res.Body), "target") {
+		t.Fatalf("default redirect: %v %v", res, err)
+	}
+	c := aConfig()
+	c.DisableRedirects = true
+	res, err = NewWithConfig(c).Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/redirect"})
+	if err != nil || res.StatusCode != 302 {
+		t.Fatalf("redirect disabled: %v %v", res, err)
+	}
+}
+
+func TestCookieJarConfig(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/set" {
+			http.SetCookie(w, &http.Cookie{Name: "sid", Value: "abc"})
+		}
+		if r.URL.Path == "/check" {
+			fmt.Fprintln(w, r.Header.Get("Cookie"))
+		}
+	}))
+	defer srv.Close()
+
+	no := NewWithConfig(aConfig())
+	_, _ = no.Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/set"})
+	res, _ := no.Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/check"})
+	if strings.Contains(string(res.Body), "sid=abc") {
+		t.Fatal("cookies should be disabled by default")
+	}
+
+	c := aConfig()
+	c.EnableCookies = true
+	yes := NewWithConfig(c)
+	_, _ = yes.Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/set"})
+	res, err := yes.Do(context.Background(), Request{Method: http.MethodGet, URL: srv.URL + "/check"})
+	if err != nil || !strings.Contains(string(res.Body), "sid=abc") {
+		t.Fatalf("cookies enabled: %v %s", err, res.Body)
+	}
+}
+
+func TestProxyURL(t *testing.T) {
+	backendCalled := false
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		backendCalled = true
+		fmt.Fprintln(w, "backend")
+	}))
+	defer backend.Close()
+
+	proxyCalled := false
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proxyCalled = true
+		fmt.Fprintln(w, "proxy")
+	}))
+	defer proxy.Close()
+
+	c := aConfig()
+	c.ProxyURL = proxy.URL
+	res, err := NewWithConfig(c).Do(context.Background(), Request{Method: http.MethodGet, URL: backend.URL})
+	if err != nil || !proxyCalled || backendCalled || string(res.Body) != "proxy\n" {
+		t.Fatalf("proxy res=%v err=%v proxy=%v backend=%v body=%q", res, err, proxyCalled, backendCalled, res.Body)
 	}
 }
 
