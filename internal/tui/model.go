@@ -447,9 +447,9 @@ func (m *Model) cycleMethod() {
 
 // panelHeights returns the content heights of the request and response panels.
 func (m *Model) panelHeights() (int, int) {
-	// top bar (3) + info bar (1) + blank (1) + req tabs (2) + req panel border (1)
-	// + res header (2) + res panel border (1) + footer (1) + slack (1)
-	const fixedVerticalSpace = 13
+	// top bar (1) + info bar (1) + blank (1) + req tabs (1) + req panel border (1)
+	// + res header (1) + res panel border (1) + footer (1) + slack (1)
+	const fixedVerticalSpace = 9
 	available := max(m.termHeight-fixedVerticalSpace, 10)
 	req := available / 2
 	return req, available - req

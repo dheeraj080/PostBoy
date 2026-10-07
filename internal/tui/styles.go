@@ -20,20 +20,22 @@ var (
 	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#569CD6"))
 
 	methodStyle = lipgloss.NewStyle().
-			Background(postmanOrange).
-			Foreground(lipgloss.Color("#FFFFFF")).
+			Foreground(postmanOrange).
 			Bold(true).
-			Padding(0, 2).
+			Padding(0, 1).
 			MarginRight(1)
 
 	sendButtonStyle = lipgloss.NewStyle().
-			Background(postmanOrange).
-			Foreground(lipgloss.Color("#FFFFFF")).
+			Foreground(postmanOrange).
 			Bold(true).
-			Padding(0, 3).
+			Padding(0, 1).
 			MarginLeft(1)
 
-	sendButtonLoadingStyle = sendButtonStyle.Background(lipgloss.Color("#C75450"))
+	sendButtonLoadingStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#F48771")).
+				Bold(true).
+				Padding(0, 1).
+				MarginLeft(1)
 
 	inactiveTabStyle = lipgloss.NewStyle().
 				Foreground(textSecondary).
@@ -42,18 +44,13 @@ var (
 	activeTabStyle = lipgloss.NewStyle().
 			Foreground(postmanOrange).
 			Bold(true).
-			Padding(0, 2).
-			BorderBottom(true).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(postmanOrange)
+			Padding(0, 2)
 
 	urlInputStyle = lipgloss.NewStyle().
 			Background(panelBg).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(borderColor).
 			Padding(0, 1)
 
-	focusedURLInputStyle = urlInputStyle.BorderForeground(postmanOrange)
+	focusedURLInputStyle = urlInputStyle.Foreground(postmanOrange)
 
 	panelStyle = lipgloss.NewStyle().
 			Background(panelBg).
