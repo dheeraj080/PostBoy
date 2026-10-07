@@ -37,6 +37,9 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Smoke test binary
+        run: go run ./cmd/postboy --version
+
       - name: Test (race)
         if: runner.os == 'Linux'
         run: go test -race ./...
