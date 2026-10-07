@@ -20,12 +20,6 @@ A keyboard-driven terminal HTTP/API client built with [Bubble Tea](https://githu
 
 ## Install
 
-**Homebrew**
-
-```sh
-brew install dheeraj080/tap/postboy
-```
-
 **Go**
 
 ```sh
