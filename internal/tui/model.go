@@ -445,32 +445,30 @@ func (m *Model) cycleMethod() {
 	}
 }
 
-// panelHeights returns the content heights of the request and response panels.
-func (m *Model) panelHeights() (int, int) {
-	// top bar (1) + info bar (1) + blank (1) + req tabs (1) + req panel border (1)
-	// + res header (1) + res panel border (1) + footer (1) + slack (1)
-	const fixedVerticalSpace = 9
-	available := max(m.termHeight-fixedVerticalSpace, 10)
-	req := available / 2
-	return req, available - req
-}
-
 func (m *Model) usableWidth() int { return max(m.termWidth-4, 20) }
+
+// columnWidths returns the inner widths for the two panes: requests left,
+// responses right.
+func (m *Model) columnWidths() (int, int) {
+	w := m.usableWidth()
+	left := max((w-1)/2, 24)
+	right := max(w-left-1, 24)
+	if left+right+1 > w {
+		right = w - left - 1
+	}
+	return left, right
+}
 
 // layout sizes stateful components. It runs in Update (never View) so sizes
 // persist on the model and scrolling works.
 func (m *Model) layout() {
-	w := m.usableWidth()
-	reqH, resH := m.panelHeights()
-	bodyH := max(reqH-1, 1)
-	if m.reqTab == reqTabBody && m.supportsBody() {
-		bodyH = max(reqH-4, 1)
-	}
-	m.bodyInput.SetWidth(w - 2)
-	m.bodyInput.SetHeight(bodyH)
-	m.viewport.Width = w - 2
-	m.viewport.Height = max(resH-1, 1)
-	m.urlInput.Width = max(w-30, 10)
+	leftW, rightW := m.columnWidths()
+	// Keep the editors bounded so the UI does not expand into empty blocks.
+	m.bodyInput.SetHeight(12)
+	m.bodyInput.SetWidth(max(leftW-4, 8))
+	m.viewport.Width = max(rightW-4, 8)
+	m.viewport.Height = 14
+	m.urlInput.Width = max(leftW+rightW-30, 20)
 }
 
 // syncViewport loads the active response tab's content into the viewport

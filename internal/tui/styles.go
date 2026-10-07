@@ -54,7 +54,8 @@ var (
 
 	panelStyle = lipgloss.NewStyle().
 			Background(panelBg).
-			Border(lipgloss.NormalBorder(), false, true, true, true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor)
 
 	focusedPanelStyle = panelStyle.BorderForeground(postmanOrange)

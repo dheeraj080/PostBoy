@@ -42,35 +42,40 @@ func (m Model) View() string {
 		return m.renderImportModal()
 	}
 
-	width := m.usableWidth()
-	reqH, resH := m.panelHeights()
-
-	sections := []string{
-		m.renderTopBar(),
-		m.renderInfoBar(width),
-		"",
+	leftW, rightW := m.columnWidths()
+	left := lipgloss.JoinVertical(lipgloss.Left,
 		m.renderRequestTabs(),
-		m.renderRequestPanel(width, reqH),
+		m.renderRequestPanel(leftW, 14),
+	)
+	right := lipgloss.JoinVertical(lipgloss.Left,
 		m.renderResponseHeader(),
-		m.renderResponsePanel(width, resH),
+		m.renderResponsePanel(rightW, 14),
+	)
+
+	return strings.Join([]string{
+		m.renderTopBar(leftW + rightW + 1),
+		m.renderInfoBar(leftW + rightW + 1),
+		"",
+		lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right),
 		m.renderFooter(),
-	}
-	return strings.Join(sections, "\n")
+	}, "\n")
 }
 
-func (m Model) renderTopBar() string {
+func (m Model) renderTopBar(width int) string {
 	urlStyle := urlInputStyle
 	if m.focus == focusURL {
 		urlStyle = focusedURLInputStyle
 	}
 	send := sendButtonStyle.Render("Send")
 	if m.loading {
-		send = sendButtonLoadingStyle.Render("Loading...")
+		send = sendButtonLoadingStyle.Render("Loading")
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Center,
-		methodStyle.Render(m.method),
+	app := dimStyle.Render("PostBoy")
+	method := methodStyle.Render("[" + m.method + "]")
+	return lipgloss.JoinHorizontal(lipgloss.Left,
+		app, "  ", method, "  ",
 		urlStyle.Render(m.urlInput.View()),
-		send)
+		"  ", send)
 }
 
 func (m Model) renderInfoBar(width int) string {
@@ -103,7 +108,7 @@ func (m Model) renderRequestPanel(width, height int) string {
 	case reqTabBody:
 		content = m.renderBodyTab(width-2, height)
 	}
-	return style.Width(width).Height(height).MaxHeight(height + 1).Render(content)
+	return style.Width(width).Render(content)
 }
 
 func (m Model) renderResponsePanel(width, height int) string {
@@ -113,20 +118,21 @@ func (m Model) renderResponsePanel(width, height int) string {
 	}
 	var content string
 	if m.resTab == resTabBody && m.respBody == "" && !m.loading && m.statusCode == 0 {
-		empty := dimStyle.Render("Response will appear here\n\n") +
+		empty := "\n" + dimStyle.Render("Response will appear here") + "\n\n" +
 			helpStyle.Render("Press Enter in the URL bar or Alt+R to send")
-		content = lipgloss.Place(width-2, height-1, lipgloss.Center, lipgloss.Center, empty)
+		content = empty
 	} else {
 		content = m.viewport.View()
 	}
-	return style.Width(width).Height(height).Render(content)
+	return style.Width(width).Render(content)
 }
 
 // renderResponseHeader joins the response tabs, metadata and toolbar,
 // truncating the toolbar to the remaining width.
 func (m Model) renderResponseHeader() string {
 	left := lipgloss.JoinHorizontal(lipgloss.Top, m.renderResponseTabs(), "  ", m.renderResponseMeta(), "  ")
-	room := m.termWidth - lipgloss.Width(left) - 1
+	_, rightW := m.columnWidths()
+	room := rightW - lipgloss.Width(left) - 1
 	if room <= 0 {
 		return left
 	}
