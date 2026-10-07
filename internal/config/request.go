@@ -97,6 +97,9 @@ type Request struct {
 	// BodyFile is the file path sent for BodyFile.
 	BodyFile       string `json:"body_file,omitempty"`
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
+
+	// Optional minimal assertion for the headless runner.
+	ExpectedStatus int `json:"expected_status,omitempty"`
 }
 
 // Origin links the working draft to a saved request in a collection.

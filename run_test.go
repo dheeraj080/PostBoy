@@ -32,7 +32,7 @@ func TestRunUsesCollectionVariables(t *testing.T) {
 		Variables: map[string]string{
 			"base": srv.URL,
 		},
-		Requests: []config.Request{{Method: "GET", URL: "{{base}}/check"}},
+		Requests: []config.Request{{Method: "GET", URL: "{{base}}/check", ExpectedStatus: 200}},
 	}}
 	if err := collection.Save(dir, cols); err != nil {
 		t.Fatal(err)

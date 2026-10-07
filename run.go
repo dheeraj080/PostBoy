@@ -140,6 +140,13 @@ func runCmd(args []string) int {
 		} else {
 			fmt.Printf("%s #%d %s -> %d in %s\n", status, i+1, r.Name, res.StatusCode, res.Duration.Round(time.Millisecond))
 		}
+		if r.ExpectedStatus > 0 && res.StatusCode != r.ExpectedStatus {
+			fmt.Fprintf(os.Stderr, "✗ #%d %s -> expected status %d, got %d\n", i+1, r.Name, r.ExpectedStatus, res.StatusCode)
+			failures++
+			if !*cont {
+				return 1
+			}
+		}
 		if *verbose {
 			fmt.Printf("  URL: %s\n", res.URL)
 			if len(res.Body) > 0 {
