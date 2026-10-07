@@ -27,6 +27,9 @@ type Collection struct {
 	ID       string           `json:"id"`
 	Name     string           `json:"name"`
 	Requests []config.Request `json:"requests"`
+	// Variables are collection-local variables. They overlay the active
+	// environment when running/opening requests from this collection.
+	Variables map[string]string `json:"variables,omitempty"`
 }
 
 type file struct {
@@ -86,6 +89,9 @@ func normalize(cols []Collection) []Collection {
 			reqs[j] = r.Normalize()
 		}
 		c.Requests = reqs
+		if c.Variables == nil {
+			c.Variables = map[string]string{}
+		}
 		out[i] = c
 	}
 	return out

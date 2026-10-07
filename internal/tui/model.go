@@ -306,6 +306,20 @@ func (m *Model) applyConfig(c config.Config, cols []collection.Collection) {
 
 func (m *Model) env() config.Environment { return m.cfg.Environments[m.envIndex] }
 
+// activeVars overlays collection variables onto the active environment.
+func (m *Model) activeVars() map[string]string {
+	env := make(map[string]string, len(m.env().Vars))
+	for k, v := range m.env().Vars {
+		env[k] = v
+	}
+	if ci, ri := m.originCollection(); ri >= 0 {
+		for k, v := range m.collections[ci].Variables {
+			env[k] = v
+		}
+	}
+	return env
+}
+
 func (m *Model) persistConfig() error {
 	m.cfg.ActiveEnv = m.envIndex
 	m.cfg.Draft = m.currentRequest()

@@ -126,6 +126,7 @@ func ImportPostman(data []byte) (PostmanImport, error) {
 		Collection: collection.Collection{ID: collection.NewID(), Name: pc.Info.Name},
 		Variables:  map[string]string{},
 	}
+	res.Collection.Variables = res.Variables
 	if res.Collection.Name == "" {
 		res.Collection.Name = "Imported collection"
 	}

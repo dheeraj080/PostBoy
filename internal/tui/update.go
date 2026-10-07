@@ -290,10 +290,7 @@ func (m *Model) startRequest() tea.Cmd {
 
 	// Copy everything the goroutine touches so it never reads model state
 	// that Update may mutate concurrently.
-	env := make(map[string]string, len(m.env().Vars))
-	for k, v := range m.env().Vars {
-		env[k] = v
-	}
+	env := m.activeVars()
 	req := httpclient.FromConfig(m.currentRequest(), env, m.secrets)
 	if req.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), req.Timeout)

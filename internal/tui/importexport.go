@@ -205,7 +205,7 @@ func expandPath(p string) string {
 // copyAsCurl copies the current request as a curl command. Environment
 // variables are expanded; secrets stay as {{ secret.NAME }}.
 func (m *Model) copyAsCurl() {
-	cmd := importer.ToCurl(m.currentRequest(), m.env().Vars)
+	cmd := importer.ToCurl(m.currentRequest(), m.activeVars())
 	if err := copyToClipboard(cmd); err != nil {
 		m.setStatus("Copy failed: "+err.Error(), true)
 		return
@@ -219,7 +219,7 @@ var unsafeFileChars = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 // export directory and returns its path.
 func (m *Model) exportCollection(ci int) (string, error) {
 	c := m.collections[ci]
-	data, err := importer.ExportPostman(c, nil)
+	data, err := importer.ExportPostman(c, c.Variables)
 	if err != nil {
 		return "", err
 	}

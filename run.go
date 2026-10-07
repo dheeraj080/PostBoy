@@ -99,6 +99,14 @@ func runCmd(args []string) int {
 		}
 	}
 	env := cfg.Environments[envIdx].Vars
+	// Collection variables augment the active environment when running that
+	// saved collection.
+	for k, v := range coll.Variables {
+		if env == nil {
+			env = map[string]string{}
+		}
+		env[k] = v
+	}
 	sec := secrets.New()
 	client := httpclient.NewWithConfig(cfg)
 
