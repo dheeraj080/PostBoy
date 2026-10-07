@@ -1,6 +1,6 @@
 version: 2
 
-project_name: tui-postman
+project_name: postboy
 
 before:
   hooks:
@@ -8,9 +8,9 @@ before:
     - go test ./...
 
 builds:
-  - id: tui-postman
-    main: ./main.go
-    binary: tui-postman
+  - id: postboy
+    main: .
+    binary: postboy
     env:
       - CGO_ENABLED=0
     goos:
@@ -20,19 +20,21 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - -trimpath
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
+      - -X main.commit={{.ShortCommit}}
       - -X main.date={{.Date}}
 
 archives:
   - id: default
-    format: tar.gz
+    formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - README.md
       - LICENSE
@@ -47,18 +49,21 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+      - "^chore:"
 
 brews:
-  - name: tui-postman
+  - name: postboy
     repository:
-      owner: your-github-username
+      owner: dheeraj080
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    # Skip publishing the formula when no tap token is configured.
+    skip_upload: '{{ if .Env.HOMEBREW_TAP_GITHUB_TOKEN }}false{{ else }}true{{ end }}'
     directory: Formula
-    homepage: "https://github.com/your-github-username/tui-postman"
-    description: "Production Terminal HTTP Client built with Bubble Tea"
+    homepage: "https://github.com/dheeraj080/PostBoy"
+    description: "Terminal HTTP/API client built with Bubble Tea"
     license: "MIT"
     install: |
-      bin.install "tui-postman"
+      bin.install "postboy"
     test: |
-      system "#{bin}/tui-postman --version"
+      system "#{bin}/postboy", "--version"
