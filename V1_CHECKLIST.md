@@ -15,15 +15,15 @@
 - [x] Run a collection from CLI, e.g. `postboy run <collection> --env prod`
 - [x] Collection-level variables/defaults
 - [x] Response assertions / tests
-- [ ] Pre- and post-request scripts/extract variables
+- [x] Pre- and post-request scripts/extract variables
 
 ## Installation
-- [ ] `postboy --version` reports a release version from CI builds
+- [x] `postboy --version` reports a release version from CI builds
 - [x] `go install` installs a binary named `postboy`
 - [ ] Publish builds for Windows/macOS/Linux
 - [ ] Publish checksums
 - [x] Add `postboy` to release assets/GoReleaser config correctly
-- [ ] Document Homebrew/Wget/install scripts
+- [x] Document Homebrew/Wget/install scripts
 
 ## Config and Runtime
 - [x] Config file schema documented
@@ -51,8 +51,8 @@
 - [x] Safe handling of missing secret references
 - [x] No hard-coded credentials in repo
 - [x] `--insecure` warning/docs
-- [ ] Proxy auth support
-- [ ] Persistent proxy schemes tested
+- [x] Proxy auth support
+- [x] Persistent proxy schemes tested
 - [x] HTTP redirects tested
 - [x] HTTPS certificate behavior documented
 - [x] Large response display bounded
@@ -76,8 +76,8 @@
 - [x] CI/cli usage
 - [x] Troubleshooting network, TLS, proxy, keyring
 - [ ] Screenshot/demo GIF
-- [ ] Changelog
-- [ ] Contributing notes
+- [x] Changelog
+- [x] Contributing notes
 
 ## Release Discipline
 - [ ] Tag releases as `vX.Y.Z`

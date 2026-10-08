@@ -26,7 +26,7 @@ A keyboard-driven terminal HTTP/API client built with [Bubble Tea](https://githu
 go install github.com/dheeraj080/PostBoy/cmd/postboy@latest
 ```
 
-Or download a binary from the [releases page](https://github.com/dheeraj080/PostBoy/releases).
+Or download a binary from the [releases page](https://github.com/dheeraj080/PostBoy/releases), extract `postboy`/`postboy.exe`, and place it on your `PATH`. No Homebrew formula is published from this repo.
 
 ## Usage
 
@@ -124,6 +124,17 @@ Saved requests in `collections.json` can add a local `expected_status`:
 }
 ```
 
+A request can include `expected_status`, and can capture values from a JSON response with `captures`. Captured values are added to the runtime environment for later requests:
+
+```json
+{
+  "method": "POST",
+  "url": "{{BASE_URL}}/login",
+  "expected_status": 200,
+  "captures": {"access_token": "data.token"}
+}
+```
+
 ## Data locations
 
 Config and current draft (`config.json`), saved requests (`collections.json`) and
@@ -162,7 +173,7 @@ A request fails if the client errors or returns 4xx/5xx. If `expected_status` is
 - Keychain unavailable: secrets become memory-only and are lost on exit.
 - TLS errors: set `insecure_skip_verify: true` only for self-signed test endpoints.
 - Redirects: set `disable_redirects: true` to follow no redirects.
-- Proxy: set `proxy_url` to an HTTP proxy URL.
+- Proxy: set `proxy_url` to an HTTP proxy URL, including credentials as `https://user:pass@proxy:port`.
 - Large responses: PostBoy limits displayed bodies and supports raw/filter/search after receipt.
 - Uploads: multipart file fields and binary file bodies use paths and are capped to avoid huge memory use.
 - Missing env var/secret: unresolved `{{NAME}}` or `{{secret.NAME}}` templates fail the request.

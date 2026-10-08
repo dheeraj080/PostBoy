@@ -98,8 +98,11 @@ type Request struct {
 	BodyFile       string `json:"body_file,omitempty"`
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 
-	// Optional minimal assertion for the headless runner.
+	// Optional minimal sanity assertion for the headless runner.
 	ExpectedStatus int `json:"expected_status,omitempty"`
+
+	// Optional response captures: local variable name -> gjson path.
+	Captures map[string]string `json:"captures,omitempty"`
 }
 
 // Origin links the working draft to a saved request in a collection.

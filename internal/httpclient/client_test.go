@@ -338,6 +338,17 @@ func TestRedirectPolicy(t *testing.T) {
 	}
 }
 
+
+func TestProxyURLSchemes(t *testing.T) {
+	for _, proxy := range []string{"http://127.0.0.1:1080", "https://user:pass@127.0.0.1:1080", "socks5://127.0.0.1:1080"} {
+		c := aConfig()
+		c.ProxyURL = proxy
+		if NewWithConfig(c) == nil {
+			t.Fatalf("proxy %s did not build client", proxy)
+		}
+	}
+}
+
 func TestCookieJarConfig(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/set" {

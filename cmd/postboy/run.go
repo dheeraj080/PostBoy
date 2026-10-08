@@ -13,6 +13,7 @@ import (
 	"github.com/dheeraj080/PostBoy/internal/config"
 	"github.com/dheeraj080/PostBoy/internal/httpclient"
 	"github.com/dheeraj080/PostBoy/internal/secrets"
+	"github.com/tidwall/gjson"
 )
 
 func runUsage() {
@@ -109,6 +110,7 @@ func runCmd(args []string) int {
 	}
 	sec := secrets.New()
 	client := httpclient.NewWithConfig(cfg)
+	captured := map[string]string{}
 
 	var failures int
 	for i, r := range coll.Requests {
@@ -147,6 +149,25 @@ func runCmd(args []string) int {
 				return 1
 			}
 		}
+		if len(r.Captures) > 0 {
+			for envVar, path := range r.Captures {
+				v := gjson.GetBytes(res.Body, path)
+				if !v.Exists() {
+					fmt.Fprintf(os.Stderr, "✗ #%d %s -> capture %s: path %q not found\n", i+1, r.Name, envVar, path)
+					failures++
+					if !*cont {
+						return 1
+					}
+					continue
+				}
+				captured[envVar] = v.String()
+				env[envVar] = v.String()
+				if *verbose {
+					fmt.Printf("    captured %s=%q\n", envVar, v.String())
+				}
+			}
+		}
+		_ = captured
 		if *verbose {
 			fmt.Printf("  URL: %s\n", res.URL)
 			if len(res.Body) > 0 {

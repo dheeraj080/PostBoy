@@ -53,3 +53,44 @@ func TestLoadCollectionVariablesFromCollectionFile(t *testing.T) {
 		t.Fatalf("cols=%+v err=%v", cols, err)
 	}
 }
+
+func TestRunCapturesValueForLaterRequests(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/token":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"token":"abc123"}`))
+		case "/use":
+			if got := r.Header.Get("Authorization"); got != "Bearer abc123" {
+				http.Error(w, "bad token", http.StatusUnauthorized)
+				return
+			}
+			_, _ = w.Write([]byte("ok"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	cfg := config.Default()
+	cfg.ActiveEnv = 0
+	if err := config.Save(dir, cfg); err != nil {
+		t.Fatal(err)
+	}
+	cols := []collection.Collection{{
+		Name: "captures",
+		Variables: map[string]string{"base": srv.URL},
+		Requests: []config.Request{
+			{Method: "GET", URL: "{{base}}/token", ExpectedStatus: 200, Captures: map[string]string{"token": "token"}},
+			{Method: "GET", URL: "{{base}}/use",
+				Headers: []config.KeyValue{{Key: "Authorization", Value: "Bearer {{token}}", Enabled: true}}},
+		},
+	}}
+	if err := collection.Save(dir, cols); err != nil {
+		t.Fatal(err)
+	}
+	if code := runCmd([]string{"--data-dir", dir, "--verbose", "captures"}); code != 0 {
+		t.Fatalf("runCmd code = %d", code)
+	}
+}
