@@ -31,14 +31,14 @@ type keyMap struct {
 
 func defaultKeyMap() keyMap {
 	return keyMap{
-		Send:          key.NewBinding(key.WithKeys("alt+r"), key.WithHelp("Alt+R / Enter", "Send request (Enter in URL bar)")),
+		Send:          key.NewBinding(key.WithKeys("alt+r"), key.WithHelp("Alt+R", "Send")),
 		Cancel:        key.NewBinding(key.WithKeys("alt+x"), key.WithHelp("Alt+X", "Cancel request")),
-		Save:          key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("Ctrl+S", "Save request")),
+		Save:          key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("Ctrl+S", "Save")),
 		SaveAs:        key.NewBinding(key.WithKeys("alt+s"), key.WithHelp("Alt+S", "Save request as (copy)")),
-		NewRequest:    key.NewBinding(key.WithKeys("alt+n"), key.WithHelp("Alt+N", "New request")),
-		Collections:   key.NewBinding(key.WithKeys("alt+o"), key.WithHelp("Alt+O", "Open collections")),
-		Import:        key.NewBinding(key.WithKeys("alt+i"), key.WithHelp("Alt+I", "Import curl / Postman collection")),
-		CopyCurl:      key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("Alt+C", "Copy request as curl")),
+		NewRequest:    key.NewBinding(key.WithKeys("alt+n"), key.WithHelp("Alt+N", "New")),
+		Collections:   key.NewBinding(key.WithKeys("alt+o"), key.WithHelp("Alt+O", "Collections")),
+		Import:        key.NewBinding(key.WithKeys("alt+i"), key.WithHelp("Alt+I", "Import")),
+		CopyCurl:      key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("Alt+C", "Copy curl")),
 		NextFocus:     key.NewBinding(key.WithKeys("tab"), key.WithHelp("Tab", "Next panel")),
 		PrevFocus:     key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("Shift+Tab", "Previous panel")),
 		TabLeft:       key.NewBinding(key.WithKeys("left", "h"), key.WithHelp("←/h", "Previous tab (tab bar focused)")),
@@ -48,7 +48,7 @@ func defaultKeyMap() keyMap {
 		Headers:       key.NewBinding(key.WithKeys("alt+l"), key.WithHelp("Alt+L", "Jump to headers")),
 		History:       key.NewBinding(key.WithKeys("alt+h"), key.WithHelp("Alt+H", "History")),
 		CycleEnv:      key.NewBinding(key.WithKeys("alt+e"), key.WithHelp("Alt+E", "Cycle environment")),
-		EnvVars:       key.NewBinding(key.WithKeys("alt+v"), key.WithHelp("Alt+V", "Edit environments & variables")),
+		EnvVars:       key.NewBinding(key.WithKeys("alt+v"), key.WithHelp("Alt+V", "Env")),
 		Secrets:       key.NewBinding(key.WithKeys("alt+k"), key.WithHelp("Alt+K", "Secrets manager")),
 		Help:          key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "Help (when not typing)")),
 		Close:         key.NewBinding(key.WithKeys("esc"), key.WithHelp("Esc", "Close dialog / cancel edit")),
@@ -68,7 +68,7 @@ func (k keyMap) helpBindings() []key.Binding {
 
 // footerBindings lists the bindings shown in the footer.
 func (k keyMap) footerBindings() []key.Binding {
-	return []key.Binding{k.Send, k.Save, k.Collections, k.NewRequest, k.Import, k.History, k.EnvVars, k.Help, k.Quit}
+	return []key.Binding{k.Send, k.Save, k.Collections, k.NewRequest, k.Import, k.CopyCurl, k.History, k.EnvVars, k.Help, k.Quit}
 }
 
 // listKeyMap holds keybindings for key/value lists (headers, params).

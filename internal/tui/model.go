@@ -461,28 +461,48 @@ func (m *Model) cycleMethod() {
 
 func (m *Model) usableWidth() int { return max(m.termWidth-4, 20) }
 
+const (
+	paneHeadRows   = 3
+	chromeRows     = 12
+	bodyChromeRows = 2
+	methodW        = 9
+	sendW          = 14
+	urlChromeW     = 33
+)
+
 // columnWidths returns the inner widths for the two panes: requests left,
-// responses right.
+// responses right. leftW + rightW = termWidth - 5 (1 space + 2 borders each).
 func (m *Model) columnWidths() (int, int) {
-	w := m.usableWidth()
+	w := max(m.termWidth-5, 48)
 	left := max((w-1)/2, 24)
 	right := max(w-left-1, 24)
-	if left+right+1 > w {
-		right = w - left - 1
-	}
 	return left, right
+}
+
+// panelHeight returns the inner content height for the main panels.
+func (m *Model) panelHeight() int {
+	return max(m.termHeight-chromeRows, 3)
 }
 
 // layout sizes stateful components. It runs in Update (never View) so sizes
 // persist on the model and scrolling works.
 func (m *Model) layout() {
 	leftW, rightW := m.columnWidths()
-	// Keep the editors bounded so the UI does not expand into empty blocks.
-	m.bodyInput.SetHeight(12)
-	m.bodyInput.SetWidth(max(leftW-4, 8))
-	m.viewport.Width = max(rightW-4, 8)
-	m.viewport.Height = 14
-	m.urlInput.Width = max(leftW+rightW-30, 20)
+	inner := leftW - 2
+	ph := m.panelHeight()
+
+	m.bodyInput.SetWidth(max(inner, 8))
+	m.bodyInput.SetHeight(max(ph-bodyChromeRows, 1))
+	m.viewport.Width = max(rightW-2, 8)
+	m.viewport.Height = max(ph, 1)
+	m.urlInput.Width = max(m.termWidth-urlChromeW, 10)
+
+	m.headers.setWidth(inner)
+	m.params.setWidth(inner)
+	m.form.setWidth(inner)
+	m.auth.input.Width = max(inner-18, 10)
+	m.bodyFileInput.Width = max(inner-4, 10)
+	m.envVars.setWidth(max(m.termWidth-20, 30))
 }
 
 // syncViewport loads the active response tab's content into the viewport

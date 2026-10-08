@@ -1,6 +1,10 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
 	postmanOrange = lipgloss.Color("#FF6C37")
@@ -26,34 +30,54 @@ var (
 			MarginRight(1)
 
 	sendButtonStyle = lipgloss.NewStyle().
-			Foreground(postmanOrange).
+			Background(postmanOrange).
+			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true).
-			Padding(0, 1).
+			Padding(0, 2).
 			MarginLeft(1)
 
 	sendButtonLoadingStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#F48771")).
+				Background(lipgloss.Color("#F48771")).
+				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).
-				Padding(0, 1).
+				Padding(0, 2).
 				MarginLeft(1)
 
 	inactiveTabStyle = lipgloss.NewStyle().
 				Foreground(textSecondary).
-				Padding(0, 2)
+				Padding(0, 1)
 
 	activeTabStyle = lipgloss.NewStyle().
 			Foreground(postmanOrange).
 			Bold(true).
-			Padding(0, 2)
+			Padding(0, 1).
+			BorderBottom(true).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(postmanOrange)
 
 	urlInputStyle = lipgloss.NewStyle().
-			Background(panelBg).
+			Background(darkBg).
 			Padding(0, 1)
 
 	focusedURLInputStyle = urlInputStyle.Foreground(postmanOrange)
 
+	urlBoxStyle = lipgloss.NewStyle().
+			Background(darkBg).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(borderColor).
+			Padding(0, 1)
+
+	focusedURLBoxStyle = urlBoxStyle.BorderForeground(postmanOrange)
+
+	mainHeaderStyle = lipgloss.NewStyle().
+			Background(darkBg).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(borderColor).
+			Padding(0, 1)
+
+	// panelStyle has no background: inner styled segments emit their own
+	// resets, which caused patchy backgrounds.
 	panelStyle = lipgloss.NewStyle().
-			Background(panelBg).
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor)
@@ -79,7 +103,46 @@ var (
 				Foreground(textSecondary).
 				Padding(0, 1).
 				MarginLeft(2)
+
+	actionPillStyle = lipgloss.NewStyle().
+			Background(darkBg).
+			Foreground(postmanOrange).
+			Bold(true).
+			Padding(0, 1).
+			MarginLeft(1)
+
+	quickActionStyle = lipgloss.NewStyle().
+				Background(borderColor).
+				Foreground(textPrimary).
+				Padding(0, 1).
+				MarginLeft(1)
 )
+
+// methodColor returns a method-specific color for the request-line badge.
+func methodColor(method string) lipgloss.Color {
+	switch strings.ToUpper(method) {
+	case "POST":
+		return postmanOrange
+	case "GET":
+		return lipgloss.Color("#00B894")
+	case "PUT":
+		return lipgloss.Color("#60A5FA")
+	case "DELETE":
+		return statusError
+	case "PATCH":
+		return lipgloss.Color("#A855F7")
+	case "HEAD", "OPTIONS":
+		return textSecondary
+	default:
+		return textPrimary
+	}
+}
+
+// methodBadge renders an uppercase, bold method badge like `[GET]`.
+func methodBadge(method string) string {
+	c := methodColor(method)
+	return lipgloss.NewStyle().Bold(true).Foreground(c).Render("[" + strings.ToUpper(method) + "]")
+}
 
 // statusStyle picks a colour for an HTTP status code.
 func statusStyle(code int) lipgloss.Style {

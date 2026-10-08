@@ -12,9 +12,8 @@ import (
 	"github.com/dheeraj080/PostBoy/internal/config"
 )
 
-// colRow is one visible row in the collections tree.
 type colRow struct {
-	ci, ri int // ri == -1 for a collection row
+	ci, ri int
 }
 
 type colInputMode int
@@ -56,7 +55,6 @@ func (m *Model) openCollections() {
 	m.modal = modalCollections
 	m.colConfirm = confirmNone
 	m.colInputMode = colInputNone
-	// Reveal and select the currently open request.
 	if ci, ri := m.originCollection(); ri >= 0 {
 		m.colExpanded[m.collections[ci].ID] = true
 		for i, r := range m.colRows() {
@@ -243,7 +241,6 @@ func (m *Model) deleteColRow(row colRow) {
 		c.Requests = append(c.Requests[:row.ri], c.Requests[row.ri+1:]...)
 	}
 	if unlink {
-		// Keep the editor contents as an untitled draft.
 		m.origin = nil
 		m.requestName = ""
 		m.savedSnapshot = config.NewRequest()
@@ -259,15 +256,12 @@ func (m *Model) deleteColRow(row colRow) {
 
 func (m Model) renderCollectionsModal() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("Collections"))
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("j/k: Move  Enter: Open/Expand  n: New  r: Rename  d: Delete  e: Export (Postman)  i: Import  Esc: Close"))
-	b.WriteString("\n\n")
+	b.WriteString(titleStyle.Render("Collections") + "\n")
+	b.WriteString(helpStyle.Render("j/k: Move  Enter: Open/Expand  n: New  r: Rename  d: Delete  e: Export (Postman)  i: Import  Esc: Close") + "\n\n")
 
 	rows := m.colRows()
 	if len(rows) == 0 {
-		b.WriteString(dimStyle.Render("No collections yet. Press 'n' to create one, or Ctrl+S in the editor to save a request."))
-		b.WriteString("\n")
+		b.WriteString(dimStyle.Render("No collections yet. Press 'n' to create one, or Ctrl+S in the editor to save a request.") + "\n")
 	}
 
 	visible := max(m.termHeight-18, 3)
@@ -277,6 +271,7 @@ func (m Model) renderCollectionsModal() string {
 	}
 	end := min(start+visible, len(rows))
 	width := max(m.termWidth-30, 20)
+
 	for i := start; i < end; i++ {
 		row := rows[i]
 		selected := i == m.colCursor
@@ -284,6 +279,7 @@ func (m Model) renderCollectionsModal() string {
 		if selected {
 			prefix = cursorStyle.Render("▶ ")
 		}
+
 		var line string
 		if row.ri < 0 {
 			c := m.collections[row.ci]
@@ -291,7 +287,11 @@ func (m Model) renderCollectionsModal() string {
 			if m.colExpanded[c.ID] {
 				arrow = "▾"
 			}
-			line = fmt.Sprintf("%s%s %s %s", prefix, arrow, titleStyle.Render(c.Name),
+			tStyle := titleStyle
+			if selected {
+				tStyle = tStyle.Background(panelBg)
+			}
+			line = fmt.Sprintf("%s%s %s %s", prefix, arrow, tStyle.Render(c.Name),
 				dimStyle.Render(fmt.Sprintf("(%d)", len(c.Requests))))
 		} else {
 			r := m.collections[row.ci].Requests[row.ri]
@@ -299,15 +299,19 @@ func (m Model) renderCollectionsModal() string {
 			if m.origin != nil && m.origin.RequestID == r.ID {
 				current = cursorStyle.Render(" ●")
 			}
+			mStyle := lipgloss.NewStyle().Foreground(postmanOrange).Bold(true).Width(8)
+			if selected {
+				mStyle = mStyle.Background(panelBg)
+			}
 			line = fmt.Sprintf("%s    %s %s%s", prefix,
-				lipgloss.NewStyle().Foreground(postmanOrange).Bold(true).Width(8).Render(r.Method),
+				mStyle.Render(r.Method),
 				truncate(r.Name, width), current)
 		}
+
 		if selected {
 			line = lipgloss.NewStyle().Background(panelBg).Render(line)
 		}
-		b.WriteString(line)
-		b.WriteString("\n")
+		b.WriteString(line + "\n")
 	}
 
 	switch {
@@ -317,22 +321,16 @@ func (m Model) renderCollectionsModal() string {
 		if m.colInputMode == colInputRename {
 			label = "Rename to:"
 		}
-		b.WriteString(helpStyle.Render(label))
-		b.WriteString("\n")
-		b.WriteString(m.colInput.View())
-		b.WriteString("\n")
+		b.WriteString(helpStyle.Render(label) + "\n")
+		b.WriteString(m.colInput.View() + "\n")
 		b.WriteString(helpStyle.Render("Enter to save • Esc to cancel"))
 	case m.colConfirm == confirmOpen:
-		b.WriteString("\n")
-		b.WriteString(statusYellowStyle.Render("Unsaved changes in the editor. Press Enter again to discard them and open."))
+		b.WriteString("\n" + statusYellowStyle.Render("Unsaved changes in the editor. Press Enter again to discard them and open."))
 	case m.colConfirm == confirmDelete:
-		b.WriteString("\n")
-		b.WriteString(statusRedStyle.Render("Press d again to delete permanently."))
+		b.WriteString("\n" + statusRedStyle.Render("Press d again to delete permanently."))
 	}
 	return m.placeModal("39", b.String())
 }
-
-// ---- Save dialog ----
 
 type saveStage int
 
@@ -401,7 +399,7 @@ func (m Model) updateSave(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case savePickCollection:
-		n := len(m.collections) + 1 // last row: "+ New collection"
+		n := len(m.collections) + 1
 		switch msg.String() {
 		case "esc":
 			m.saveStage = saveEnterName
@@ -431,18 +429,14 @@ func (m Model) updateSave(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) renderSaveModal() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("Save Request"))
-	b.WriteString("\n\n")
+	b.WriteString(titleStyle.Render("Save Request") + "\n\n")
 	switch m.saveStage {
 	case saveEnterName:
-		b.WriteString(helpStyle.Render("Request name:"))
-		b.WriteString("\n")
-		b.WriteString(m.colInput.View())
-		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render("Request name:") + "\n")
+		b.WriteString(m.colInput.View() + "\n\n")
 		b.WriteString(helpStyle.Render("Enter: Next • Esc: Cancel"))
 	case savePickCollection:
-		b.WriteString(helpStyle.Render(fmt.Sprintf("Save '%s' to collection:", m.saveName)))
-		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render(fmt.Sprintf("Save '%s' to collection:", m.saveName)) + "\n\n")
 		for i := 0; i <= len(m.collections); i++ {
 			label := ""
 			if i < len(m.collections) {
@@ -457,13 +451,10 @@ func (m Model) renderSaveModal() string {
 			}
 			b.WriteString(prefix + label + "\n")
 		}
-		b.WriteString("\n")
-		b.WriteString(helpStyle.Render("j/k: Move • Enter: Save • Esc: Back"))
+		b.WriteString("\n" + helpStyle.Render("j/k: Move • Enter: Save • Esc: Back"))
 	case saveNewCollection:
-		b.WriteString(helpStyle.Render("New collection name:"))
-		b.WriteString("\n")
-		b.WriteString(m.colInput.View())
-		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render("New collection name:") + "\n")
+		b.WriteString(m.colInput.View() + "\n\n")
 		b.WriteString(helpStyle.Render("Enter: Save • Esc: Back"))
 	}
 	return m.placeModal("39", b.String())

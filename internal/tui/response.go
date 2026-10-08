@@ -102,10 +102,8 @@ func formatBody(body []byte, contentType string) (plain, colored string) {
 	}
 	ct := strings.ToLower(contentType)
 	if strings.Contains(ct, "json") || json.Valid(body) {
-		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, body, "", "  "); err == nil {
-			return pretty.String(), highlight(pretty.String(), "json")
-		}
+		pretty := prettyJSON(string(body))
+		return pretty, highlightJSON(pretty)
 	}
 	s := string(body)
 	switch {

@@ -48,36 +48,90 @@ func (m Model) renderBodyTab(width, height int) string {
 	if !m.supportsBody() {
 		return dimStyle.Render("No body for " + m.method + " requests")
 	}
-	var parts []string
-	parts = append(parts, m.renderBodyModeBar())
+	modeBar := m.renderBodyModeBar(width)
+	innerH := height - bodyChromeRows
+	if innerH < 1 {
+		innerH = 1
+	}
+
+	var content string
 	switch m.bodyMode {
 	case config.BodyURLEncoded, config.BodyMultipart:
-		parts = append(parts, m.form.View(m.focus == focusReqContent, width))
+		content = m.form.View(m.focus == focusReqContent, width, innerH)
 		if m.bodyMode == config.BodyMultipart {
-			parts = append(parts, dimStyle.Render("Press 'v' on a form field to toggle between text and file. File values are paths."))
+			hint := "Press 'v' on a form field to toggle between text and file. File values are paths."
+			content += "\n" + dimStyle.Render(truncate(hint, width))
 		} else {
-			parts = append(parts, dimStyle.Render("Form fields are sent with Content-Type: application/x-www-form-urlencoded"))
+			hint := "Form fields are sent with Content-Type: application/x-www-form-urlencoded"
+			content += "\n" + dimStyle.Render(truncate(hint, width))
 		}
 	case config.BodyFile:
-		parts = append(parts, helpStyle.Render("File path to send as the request body (Content-Type guessed from extension):"))
-		m.bodyFileInput.Width = max(width-4, 10)
-		parts = append(parts, m.bodyFileInput.View())
+		hint := "File path to send as the request body (Content-Type guessed from extension):"
+		content = helpStyle.Render(truncate(hint, width)) + "\n" + m.bodyFileInput.View()
 	default:
-		parts = append(parts, m.bodyInput.View())
-		parts = append(parts, helpStyle.Render("Ctrl+O: edit body in $EDITOR"))
+		if m.focus == focusReqContent {
+			content = m.bodyInput.View()
+		} else {
+			trim := strings.TrimSpace(m.bodyInput.Value())
+			if strings.HasPrefix(trim, "{") || strings.HasPrefix(trim, "[") {
+				content = highlightJSON(prettyJSON(m.bodyInput.Value()))
+			} else {
+				content = m.bodyInput.View()
+			}
+		}
+		hint := "Ctrl+O: edit body in $EDITOR"
+		content += "\n" + helpStyle.Render(truncate(hint, width))
 	}
-	return strings.Join(parts, "\n")
+
+	content = fixBox(content, width, innerH)
+	footer := fixBox("Interpolated at send time", width, 1)
+	return lipgloss.JoinVertical(lipgloss.Left, modeBar, content, footer)
 }
 
-func (m Model) renderBodyModeBar() string {
+func modeLabel(b config.BodyMode) string {
+	switch b {
+	case config.BodyRaw:
+		return "Raw (JSON)"
+	case config.BodyURLEncoded:
+		return "Form URL-Encoded"
+	case config.BodyMultipart:
+		return "Multipart"
+	case config.BodyFile:
+		return "Binary"
+	default:
+		return b.Label()
+	}
+}
+
+func shortModeLabel(b config.BodyMode) string {
+	switch b {
+	case config.BodyRaw:
+		return "JSON"
+	case config.BodyURLEncoded:
+		return "FORM"
+	case config.BodyMultipart:
+		return "MULTI"
+	case config.BodyFile:
+		return "BINARY"
+	default:
+		return b.Label()
+	}
+}
+
+func (m Model) renderBodyModeBar(width int) string {
 	var out []string
 	for _, b := range config.BodyModes {
-		label := b.Label()
+		label := modeLabel(b)
+		if width < 68 {
+			label = shortModeLabel(b)
+		}
 		if b == m.bodyMode {
 			out = append(out, activeTabStyle.Render(label))
 		} else {
 			out = append(out, inactiveTabStyle.Render(label))
 		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Left, out...) + "\n" + dimStyle.Render("Alt+T cycles type")
+	left := lipgloss.JoinHorizontal(lipgloss.Left, out...)
+	right := dimStyle.Render("Alt+T cycles type")
+	return fitRow(left, right, width)
 }

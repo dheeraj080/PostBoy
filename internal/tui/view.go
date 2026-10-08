@@ -2,15 +2,15 @@ package tui
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 )
 
 const (
-	minWidth  = 60
+	minWidth  = 80
 	minHeight = 20
 )
 
@@ -42,53 +42,82 @@ func (m Model) View() string {
 		return m.renderImportModal()
 	}
 
-	leftW, rightW := m.columnWidths()
-	left := lipgloss.JoinVertical(lipgloss.Left,
-		m.renderRequestTabs(),
-		m.renderRequestPanel(leftW, 14),
-	)
-	right := lipgloss.JoinVertical(lipgloss.Left,
-		m.renderResponseHeader(),
-		m.renderResponsePanel(rightW, 14),
-	)
+	left := m.renderLeftPane()
+	right := m.renderRightPane()
 
-	return strings.Join([]string{
-		m.renderTopBar(leftW + rightW + 1),
-		m.renderInfoBar(leftW + rightW + 1),
+	out := strings.Join([]string{
+		m.renderURLBar(),
+		m.renderHeaderLine(),
 		"",
 		lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right),
+		dimStyle.Render(strings.Repeat("─", m.termWidth)),
 		m.renderFooter(),
 	}, "\n")
+	return fixBox(out, m.termWidth, m.termHeight)
 }
 
-func (m Model) renderTopBar(width int) string {
-	urlStyle := urlInputStyle
+func (m Model) renderLeftPane() string {
+	leftW, _ := m.columnWidths()
+	head := fixBox(m.renderRequestTabs(), leftW+2, paneHeadRows)
+	return lipgloss.JoinVertical(lipgloss.Left, head, m.renderRequestPanel(leftW, m.panelHeight()))
+}
+
+func (m Model) renderRightPane() string {
+	_, rightW := m.columnWidths()
+	head := fixBox(m.renderResponseHeader(), rightW+2, paneHeadRows)
+	return lipgloss.JoinVertical(lipgloss.Left, head, m.renderResponsePanel(rightW, m.panelHeight()))
+}
+
+// renderURLBar renders brand, method tag, standalone URL box, and Send button.
+func (m Model) renderURLBar() string {
+	brand := dimStyle.Render("PostBoy")
+	method := lipgloss.NewStyle().
+		Foreground(methodColor(m.method)).
+		Bold(true).
+		Width(methodW).
+		Align(lipgloss.Center).
+		Render("[" + strings.ToUpper(m.method) + "]")
+
+	urlBoxStyle := urlBoxStyle
 	if m.focus == focusURL {
-		urlStyle = focusedURLInputStyle
+		urlBoxStyle = focusedURLBoxStyle
 	}
-	send := sendButtonStyle.Render("Send")
+	urlBox := urlBoxStyle.Render(m.urlInput.View())
+
+	send := sendButtonStyle.Render(" Send ")
 	if m.loading {
-		send = sendButtonLoadingStyle.Render("Loading")
+		send = sendButtonLoadingStyle.Render(" Loading... ")
 	}
-	app := dimStyle.Render("PostBoy")
-	method := methodStyle.Render("[" + m.method + "]")
-	return lipgloss.JoinHorizontal(lipgloss.Left,
-		app, "  ", method, "  ",
-		urlStyle.Render(m.urlInput.View()),
-		"  ", send)
+	send = lipgloss.NewStyle().Width(sendW).Align(lipgloss.Center).Render(send)
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, brand, " ", method, " ", urlBox, " ", send)
 }
 
-func (m Model) renderInfoBar(width int) string {
-	badge := envBadgeStyle.Render(m.env().Name)
-	title := lipgloss.NewStyle().Foreground(textPrimary).Bold(true).Render(truncate(m.requestTitle(), width/2)) + "  "
-	style := statusGreenStyle
-	if m.statusErr {
-		style = statusRedStyle
+// renderHeaderLine shows request title + status on the left, env pill on the right.
+func (m Model) renderHeaderLine() string {
+	title := lipgloss.NewStyle().Foreground(textPrimary).Bold(true).Render(m.requestTitle())
+
+	var meta string
+	switch {
+	case m.statusErr:
+		meta = statusRedStyle.Render(m.status)
+	case m.statusCode != 0:
+		parts := []string{fmt.Sprintf("%d %s", m.statusCode, http.StatusText(m.statusCode))}
+		if m.responseTime > 0 {
+			parts = append(parts, m.responseTime.Round(time.Millisecond).String())
+		}
+		meta = statusStyle(m.statusCode).Render(strings.Join(parts, " • "))
+	case m.status != "" && m.status != "Ready":
+		meta = statusGreenStyle.Render(m.status)
 	}
-	maxStatus := max(width-lipgloss.Width(badge)-lipgloss.Width(title)-1, 10)
-	status := style.Render(truncate(m.status, maxStatus))
-	gap := max(width-lipgloss.Width(title)-lipgloss.Width(status)-lipgloss.Width(badge), 1)
-	return title + status + strings.Repeat(" ", gap) + badge
+	left := title
+	if meta != "" {
+		left += "  " + meta
+	}
+	left = truncate(left, m.termWidth/2)
+
+	env := envBadgeStyle.Render("• " + m.env().Name)
+	return fitRow(left, env, m.termWidth)
 }
 
 func (m Model) renderRequestPanel(width, height int) string {
@@ -97,18 +126,19 @@ func (m Model) renderRequestPanel(width, height int) string {
 	if focused {
 		style = focusedPanelStyle
 	}
+	inner := width - 2
 	var content string
 	switch m.reqTab {
 	case reqTabParams:
-		content = m.params.View(focused, width-2)
+		content = m.params.View(focused, inner, height)
 	case reqTabAuth:
-		content = m.auth.View(focused, width-2)
+		content = m.auth.View(focused, inner)
 	case reqTabHeaders:
-		content = m.headers.View(focused, width-2)
+		content = m.headers.View(focused, inner, height)
 	case reqTabBody:
-		content = m.renderBodyTab(width-2, height)
+		content = m.renderBodyTab(inner, height)
 	}
-	return style.Width(width).Render(content)
+	return style.Width(width).Height(height).MaxHeight(height + 2).Render(content)
 }
 
 func (m Model) renderResponsePanel(width, height int) string {
@@ -118,25 +148,62 @@ func (m Model) renderResponsePanel(width, height int) string {
 	}
 	var content string
 	if m.resTab == resTabBody && m.respBody == "" && !m.loading && m.statusCode == 0 {
-		empty := "\n" + dimStyle.Render("Response will appear here") + "\n\n" +
+		content = "\n" + dimStyle.Render("Response will appear here") + "\n\n" +
 			helpStyle.Render("Press Enter in the URL bar or Alt+R to send")
-		content = empty
 	} else {
 		content = m.viewport.View()
 	}
-	return style.Width(width).Render(content)
+	return style.Width(width).Height(height).MaxHeight(height + 2).Render(content)
 }
 
-// renderResponseHeader joins the response tabs, metadata and toolbar,
-// truncating the toolbar to the remaining width.
+// renderResponseHeader renders response tabs + quick actions, then meta/input.
 func (m Model) renderResponseHeader() string {
-	left := lipgloss.JoinHorizontal(lipgloss.Top, m.renderResponseTabs(), "  ", m.renderResponseMeta(), "  ")
-	_, rightW := m.columnWidths()
-	room := rightW - lipgloss.Width(left) - 1
-	if room <= 0 {
-		return left
+	tabs := m.renderResponseTabs()
+	actions := m.renderResponseQuickActions()
+	row1 := fitRow(tabs, actions, m.termWidth)
+
+	var row2 string
+	if m.resp.inputMode != respInputNone {
+		row2 = m.renderResponseToolbar()
+	} else {
+		parts := []string{}
+		if m.statusCode != 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", m.statusCode, http.StatusText(m.statusCode)))
+		}
+		if m.responseTime > 0 {
+			parts = append(parts, m.responseTime.Round(time.Millisecond).String())
+		}
+		if m.respSize > 0 {
+			parts = append(parts, formatSize(m.respSize))
+		}
+		if len(parts) == 0 {
+			row2 = helpStyle.Render("Response metadata will appear here")
+		} else {
+			row2 = statusStyle(m.statusCode).Render(strings.Join(parts, "  "))
+		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, left, ansi.Truncate(m.renderResponseToolbar(), room, "…"))
+	return row1 + "\n" + row2
+}
+
+func (m Model) renderResponseQuickActions() string {
+	if !(m.resp.hasBody() || m.resp.binary) {
+		return ""
+	}
+	pills := []string{"f: filter", "r: pretty", "y copy", "• s save"}
+	var kept []string
+	for i := len(pills) - 1; i >= 0; i-- {
+		candidate := pills[i]
+		if len(kept) > 0 {
+			candidate = candidate + " " + strings.Join(kept, " ")
+		}
+		if lipgloss.Width(candidate) <= m.termWidth {
+			kept = append([]string{pills[i]}, kept...)
+		}
+	}
+	if len(kept) == 0 {
+		return ""
+	}
+	return strings.Join(kept, "  ")
 }
 
 func (m Model) renderRequestTabs() string {
@@ -144,10 +211,10 @@ func (m Model) renderRequestTabs() string {
 		tab  requestTab
 		name string
 	}{
-		{reqTabParams, "Params"},
-		{reqTabAuth, "Authorization"},
-		{reqTabHeaders, "Headers"},
-		{reqTabBody, "Body"},
+		{reqTabParams, "PARAMS"},
+		{reqTabAuth, "AUTH"},
+		{reqTabHeaders, "HEADERS"},
+		{reqTabBody, "BODY"},
 	}
 	var out []string
 	for _, t := range tabs {
@@ -162,8 +229,8 @@ func (m Model) renderRequestTabs() string {
 
 func (m Model) renderResponseTabs() string {
 	return lipgloss.JoinHorizontal(lipgloss.Left,
-		m.tabStyle(m.resTab == resTabBody, m.focus == focusResTabs).Render("Body"),
-		m.tabStyle(m.resTab == resTabHeaders, m.focus == focusResTabs).Render("Headers"))
+		m.tabStyle(m.resTab == resTabBody, m.focus == focusResTabs).Render("BODY"),
+		m.tabStyle(m.resTab == resTabHeaders, m.focus == focusResTabs).Render("HEADERS"))
 }
 
 func (m Model) tabStyle(active, barFocused bool) lipgloss.Style {
@@ -176,28 +243,27 @@ func (m Model) tabStyle(active, barFocused bool) lipgloss.Style {
 	return activeTabStyle
 }
 
-func (m Model) renderResponseMeta() string {
-	if m.statusCode == 0 {
-		return ""
-	}
-	parts := []string{statusStyle(m.statusCode).Render(fmt.Sprintf("%d", m.statusCode))}
-	if m.responseTime > 0 {
-		parts = append(parts, responseMetaStyle.Render(m.responseTime.Round(time.Millisecond).String()))
-	}
-	parts = append(parts, responseMetaStyle.Render(formatSize(m.respSize)))
-	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
-}
-
 func (m Model) renderFooter() string {
+	all := m.keys.footerBindings()
 	var parts []string
-	for _, kb := range m.keys.footerBindings() {
+	for _, kb := range all {
 		h := kb.Help()
-		parts = append(parts, h.Key+": "+shortDesc(h.Desc))
+		parts = append(parts, shortKey(h.Key)+" "+shortDesc(h.Desc))
 	}
-	return helpStyle.Render(truncate(strings.Join(parts, " | "), m.termWidth))
+	// Drop optional items from the left until everything fits.
+	for lipgloss.Width(strings.Join(parts, "   ")) > m.termWidth && len(parts) > 2 {
+		parts = parts[1:]
+	}
+	return fixBox(strings.Join(parts, "   "), m.termWidth, 1)
 }
 
-// shortDesc trims parenthetical notes from help text for the footer.
+func shortKey(k string) string {
+	if i := strings.Index(k, " /"); i > 0 {
+		return k[:i]
+	}
+	return k
+}
+
 func shortDesc(s string) string {
 	if i := strings.Index(s, " ("); i > 0 {
 		return s[:i]

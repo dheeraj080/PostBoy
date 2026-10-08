@@ -223,7 +223,7 @@ func (m Model) renderEnvModal() string {
 	b.WriteString("\n\n")
 
 	width := max(m.termWidth-20, 30)
-	b.WriteString(m.envVars.View(m.envInputMode == envInputNone, width))
+	b.WriteString(m.envVars.View(m.envInputMode == envInputNone, width, max(m.termHeight-18, 4)))
 	b.WriteString("\n")
 
 	switch {

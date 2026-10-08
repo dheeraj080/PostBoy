@@ -42,7 +42,6 @@ func (f authField) label() string {
 	return ""
 }
 
-// authEditor edits a request's Auth settings.
 type authEditor struct {
 	auth    config.Auth
 	cursor  int
@@ -93,7 +92,7 @@ func (a *authEditor) value(f authField) *string {
 func (a *authEditor) current() authField {
 	fs := a.fields()
 	if a.cursor >= len(fs) {
-		a.cursor = len(fs) - 1
+		a.cursor = max(len(fs)-1, 0)
 	}
 	return fs[a.cursor]
 }
@@ -113,6 +112,9 @@ func (a *authEditor) cycleType(forward bool) {
 		idx = (idx - 1 + n) % n
 	}
 	a.auth.Type = config.AuthTypes[idx]
+	if a.cursor >= len(a.fields()) {
+		a.cursor = max(len(a.fields())-1, 0)
+	}
 }
 
 func (a *authEditor) toggleIn() {
@@ -129,7 +131,6 @@ func (a *authEditor) cancelEdit() {
 	a.input.EchoMode = textinput.EchoNormal
 }
 
-// Update handles a key press. changed reports whether auth was modified.
 func (a *authEditor) Update(msg tea.KeyMsg) (cmd tea.Cmd, changed bool) {
 	if a.editing {
 		switch msg.String() {
@@ -191,29 +192,38 @@ func (a *authEditor) Update(msg tea.KeyMsg) (cmd tea.Cmd, changed bool) {
 	return nil, false
 }
 
-// View renders the editor.
+// View renders at most 7 rows with no trailing newline.
 func (a *authEditor) View(focused bool, width int) string {
 	var b strings.Builder
+	fields := a.fields()
+	if a.cursor >= len(fields) {
+		a.cursor = max(len(fields)-1, 0)
+	}
+
 	labelStyle := lipgloss.NewStyle().Foreground(textSecondary).Width(12)
 	valStyle := lipgloss.NewStyle().Foreground(textPrimary)
-	a.input.Width = max(width-18, 10)
 
-	for i, f := range a.fields() {
+	for i, f := range fields {
 		selected := focused && i == a.cursor
 		prefix := "  "
-		if selected {
-			prefix = cursorStyle.Render("▶ ")
+		curLabel := labelStyle
+		curVal := valStyle
+		if selected && !a.editing {
+			curLabel = curLabel.Background(borderColor)
+			curVal = curVal.Background(borderColor)
+			prefix = cursorStyle.Bold(true).Background(borderColor).Render("▶ ")
 		}
+
 		var val string
 		switch f {
 		case afType:
-			val = cursorStyle.Render("◀ ") + valStyle.Bold(true).Render(a.auth.Type.Label()) + cursorStyle.Render(" ▶")
+			val = cursorStyle.Render("◀ ") + curVal.Bold(true).Render(a.auth.Type.Label()) + cursorStyle.Render(" ▶")
 		case afIn:
 			in := "Header"
 			if a.auth.In == config.APIKeyInQuery {
 				in = "Query Params"
 			}
-			val = cursorStyle.Render("◀ ") + valStyle.Render(in) + cursorStyle.Render(" ▶")
+			val = cursorStyle.Render("◀ ") + curVal.Render(in) + cursorStyle.Render(" ▶")
 		default:
 			if selected && a.editing {
 				val = a.input.View()
@@ -223,36 +233,29 @@ func (a *authEditor) View(focused bool, width int) string {
 				case v == "":
 					val = dimStyle.Render("(empty)")
 				case f == afPassword && !isTemplate(v):
-					val = valStyle.Render(strings.Repeat("•", min(len([]rune(v)), 12)))
+					val = curVal.Render(strings.Repeat("•", min(len([]rune(v)), 12)))
 				default:
-					val = valStyle.Render(truncate(v, max(width-18, 10)))
+					val = curVal.Render(truncate(v, max(width-18, 10)))
 				}
 			}
 		}
-		line := prefix + labelStyle.Render(f.label()) + val
-		if selected && !a.editing {
-			line = selectedRowStyle.Render(line)
-		}
-		b.WriteString(line)
-		b.WriteString("\n")
+		b.WriteString(prefix + curLabel.Render(f.label()) + val + "\n")
 	}
 
 	b.WriteString("\n")
 	switch {
 	case a.auth.Type == config.AuthNone:
-		b.WriteString(dimStyle.Render("This request does not use any authorization."))
-		b.WriteString("\n")
+		b.WriteString(dimStyle.Render(truncate("This request does not use any authorization.", width)) + "\n")
 	case a.hasPlaintextCredential():
-		b.WriteString(statusYellowStyle.Render("⚠ Credential is saved in plain text. Prefer {{ secret.NAME }} (Alt+K)."))
-		b.WriteString("\n")
+		b.WriteString(statusYellowStyle.Render(truncate("⚠ Credential is saved in plain text. Prefer {{ secret.NAME }} (Alt+K).", width)) + "\n")
 	default:
-		b.WriteString(dimStyle.Render("Auth is applied at send time and never saved to history."))
-		b.WriteString("\n")
+		b.WriteString(dimStyle.Render(truncate("Auth is applied at send time and never saved to history.", width)) + "\n")
 	}
+
 	if focused && !a.editing {
-		b.WriteString(helpStyle.Render("[←/→] Change  [Enter] Edit  [↑/↓] Move"))
+		b.WriteString(helpStyle.Render(truncate("[←/→] Change  [Enter] Edit  [↑/↓] Move", width)))
 	} else if a.editing {
-		b.WriteString(helpStyle.Render("Enter to save • Esc to cancel"))
+		b.WriteString(helpStyle.Render(truncate("Enter to save • Esc to cancel", width)))
 	}
 	return b.String()
 }
