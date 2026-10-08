@@ -1,0 +1,7 @@
+{
+  "name": "PostBoy – terminal API client",
+  "description": "PostBoy is a local terminal API client with collections, environments, secrets, and headless runs for CI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

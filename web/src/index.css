@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-term-bg: #1E1E1E;
+  --color-term-panel: #252526;
+  --color-term-border: #3E3E42;
+  --color-postboy-orange: #FF6C37;
+  --color-status-success: #4EC9B0;
+  --color-status-error: #F48771;
+  --color-status-warn: #DCDCAA;
+  --color-term-cyan: #9CDCFE;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #1E1E1E;
+    color: #CCCCCC;
+  }
+  
+  code, pre, kbd, .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Hero Entrance Animations */
+@keyframes heroEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-branding {
+  animation: heroEntrance 360ms cubic-bezier(0.16, 1, 0.3, 1) 0ms forwards;
+}
+
+.animate-hero-headline {
+  animation: heroEntrance 380ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+.animate-hero-desc {
+  animation: heroEntrance 380ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+}
+
+.animate-hero-cta {
+  animation: heroEntrance 380ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
+}
+
+.animate-hero-terminal {
+  animation: heroEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
+}
+
+/* Staged reveals for CI, Terminal, and Security */
+.stage-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.stage-enter.stage-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reusable section transition helper */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.section-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth Accordion Height with CSS Grid */
+.faq-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-grid.is-open {
+  grid-template-rows: 1fr;
+}
+
+.faq-inner {
+  overflow: hidden;
+}
+
+/* Reduced Motion Enforcement */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stage-enter,
+  .section-reveal,
+  .animate-hero-branding,
+  .animate-hero-headline,
+  .animate-hero-desc,
+  .animate-hero-cta,
+  .animate-hero-terminal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Custom scrollbars for terminal windows */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1E1E1E;
+}
+::-webkit-scrollbar-thumb {
+  background: #3E3E42;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #505054;
+}
