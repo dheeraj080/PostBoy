@@ -26,37 +26,37 @@
 - [ ] Document Homebrew/Wget/install scripts
 
 ## Config and Runtime
-- [ ] Config file schema documented
-- [ ] Clear platform-specific config dir
-- [ ] Clear behavior when Keyring is unavailable
-- [ ] Clear keyring/keychain setup docs
-- [ ] Upgrade path from older config files
-- [ ] Warnings for plain-text secrets
-- [ ] Request proxy/timeout/TLS settings shown in UI or docs
+- [x] Config file schema documented
+- [x] Clear platform-specific config dir
+- [x] Clear behavior when Keyring is unavailable
+- [x] Clear keyring/keychain setup docs
+- [x] Upgrade path from older config files
+- [x] Warnings for plain-text secrets
+- [x] Request proxy/timeout/TLS settings shown in UI or docs
 
 ## UI/UX
 - [x] Compact two-pane layout
 - [x] One-line command row
 - [ ] Focused view for edit vs send vs response
 - [ ] Consistent labels and keyboard shortcuts in footer/help
-- [ ] Empty states that are useful, not huge empty frames
-- [ ] Terminal resize handling
-- [ ] Small width fallback
-- [ ] Avoid too many borders/panels
+- [x] Empty states that are useful, not huge empty frames
+- [x] Terminal resize handling
+- [x] Small width fallback
+- [x] Avoid too many borders/panels
 
 ## Reliability and Security
 - [x] Sensitive headers are redacted in history
 - [x] Secrets are not stored on disk by default
-- [ ] Validate secrets do not leak in request output
-- [ ] Safe handling of missing secret references
-- [ ] No hard-coded credentials in repo
-- [ ] `--insecure` warning/docs
+- [x] Validate secrets do not leak in request output
+- [x] Safe handling of missing secret references
+- [x] No hard-coded credentials in repo
+- [x] `--insecure` warning/docs
 - [ ] Proxy auth support
-- [ ] Proxy schemes tested
-- [ ] HTTP redirects tested
-- [ ] HTTPS certificate behavior documented
-- [ ] Large response display bounded
-- [ ] File upload size limits sane
+- [ ] Persistent proxy schemes tested
+- [x] HTTP redirects tested
+- [x] HTTPS certificate behavior documented
+- [x] Large response display bounded
+- [x] File upload size limits sane
 
 ## Developer Experience
 - [x] Go tests for most packages
@@ -69,12 +69,12 @@
 - [x] Release workflow tests binary
 
 ## Docs
-- [ ] README quick start
-- [ ] Install instructions
-- [ ] Environment/secret setup
-- [ ] Import/export examples
-- [ ] CI/cli usage
-- [ ] Troubleshooting network, TLS, proxy, keyring
+- [x] README quick start
+- [x] Install instructions
+- [x] Environment/secret setup
+- [x] Import/export examples
+- [x] CI/cli usage
+- [x] Troubleshooting network, TLS, proxy, keyring
 - [ ] Screenshot/demo GIF
 - [ ] Changelog
 - [ ] Contributing notes

@@ -97,6 +97,10 @@ func (r Request) buildBody() (*builtBody, error) {
 			f.Close()
 			return nil, fmt.Errorf("body file: %s is a directory", p)
 		}
+		if st.Size() > MaxUploadBytes {
+			f.Close()
+			return nil, fmt.Errorf("body file exceeds %d MB", MaxUploadBytes>>20)
+		}
 		ct := mime.TypeByExtension(filepath.Ext(p))
 		if ct == "" {
 			ct = "application/octet-stream"

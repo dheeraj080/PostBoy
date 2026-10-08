@@ -34,8 +34,19 @@ Or download a binary from the [releases page](https://github.com/dheeraj080/Post
 postboy                     # start the TUI
 postboy --data-dir ./.pb    # use a custom config/history directory
 postboy import api.json     # import a Postman v2.1 collection
+postboy run "My API" --env Production # run a saved collection headlessly
 postboy --version           # print version
 ```
+
+Quick start:
+
+1. Run `postboy`.
+2. Enter a URL and press `Enter` or `Alt+R`.
+3. Add params/headers/body/auth in the left pane.
+4. Press `Ctrl+S` to save it into a collection.
+5. Press `Alt+O` to open collections and `e` to export one to Postman format, or
+   `Alt+C` to copy it as curl.
+6. Use `postboy run "My API" --env Production` for scripts/CI.
 
 ### Keybindings
 
@@ -86,6 +97,33 @@ Variables can reference other variables (`BASE={{HOST}}/v1`) and secrets.
 Built-in variables: `{{$uuid}}` (`$guid`, `$randomUUID`), `{{$timestamp}}`, `{{$timestampMs}}`,
 `{{$isoTimestamp}}`, `{{$randomInt}}`, `{{$randomHex}}`.
 
+## Configuration
+
+`config.json` controls defaults and transport behavior. Common fields:
+
+```json
+{
+  "timeout_seconds": 15,
+  "insecure_skip_verify": false,
+  "disable_redirects": false,
+  "proxy_url": "",
+  "enable_cookies": false,
+  "environments": [{"name": "Prod", "vars": {"BASE_URL": "https://api.example.com"}}]
+}
+```
+
+Older config files are normalized at load; PostBoy fills missing fields and migrates old global headers/params into the current draft.
+
+Saved requests in `collections.json` can add a local `expected_status`:
+
+```json
+{
+  "method": "GET",
+  "url": "{{BASE_URL}}/health",
+  "expected_status": 200
+}
+```
+
 ## Data locations
 
 Config and current draft (`config.json`), saved requests (`collections.json`) and
@@ -95,7 +133,39 @@ history (`postboy.db`) live in your user config directory:
 - macOS: `~/Library/Application Support/postboy/`
 - Windows: `%AppData%\postboy\`
 
-Secret values are stored only in the OS keychain. If no keychain is available, secrets are kept in memory and are lost on exit.
+Secret values are stored only in the OS keychain. If no keychain is available, secrets are held in memory and are cleared on exit; PostBoy will warn on startup. Use secrets in requests as `{{ secret.NAME }}`.
+
+## Import and Export
+
+Import a Postman v2.1 collection:
+
+```sh
+postboy import examples/api.postman_collection.json
+```
+
+Import a curl command or export one from the TUI with `Alt+C`. Export a collection to Postman with `e` in Collections.
+
+## CLI Usage
+
+Run saved requests non-interactively:
+
+```sh
+postboy run "My API" --env Production
+postboy run "My API" --env Production --continue
+postboy run "My API" --env Production --verbose
+```
+
+A request fails if the client errors or returns 4xx/5xx. If `expected_status` is set on a request, the status must match exactly.
+
+## Troubleshooting
+
+- Keychain unavailable: secrets become memory-only and are lost on exit.
+- TLS errors: set `insecure_skip_verify: true` only for self-signed test endpoints.
+- Redirects: set `disable_redirects: true` to follow no redirects.
+- Proxy: set `proxy_url` to an HTTP proxy URL.
+- Large responses: PostBoy limits displayed bodies and supports raw/filter/search after receipt.
+- Uploads: multipart file fields and binary file bodies use paths and are capped to avoid huge memory use.
+- Missing env var/secret: unresolved `{{NAME}}` or `{{secret.NAME}}` templates fail the request.
 
 ## Development
 
@@ -108,7 +178,7 @@ Project layout:
 
 | Path | Responsibility |
 |---|---|
-| `main.go` | Flags and program startup |
+| `cmd/postboy/main.go` | Flags, subcommands, and program startup |
 | `internal/config` | Config, request and auth schema; atomic load/save; migrations |
 | `internal/collection` | Saved requests (`collections.json`) |
 | `internal/fsutil` | Atomic file writes |
