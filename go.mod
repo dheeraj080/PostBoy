@@ -1,6 +1,6 @@
 module github.com/dheeraj080/PostBoy
 
-go 1.26.0
+go 1.27.1
 
 require (
 	github.com/alecthomas/chroma/v2 v2.27.0
