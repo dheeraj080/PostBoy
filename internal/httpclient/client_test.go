@@ -338,7 +338,6 @@ func TestRedirectPolicy(t *testing.T) {
 	}
 }
 
-
 func TestProxyURLSchemes(t *testing.T) {
 	for _, proxy := range []string{"http://127.0.0.1:1080", "https://user:pass@127.0.0.1:1080", "socks5://127.0.0.1:1080"} {
 		c := aConfig()

@@ -79,7 +79,7 @@ func TestRunCapturesValueForLaterRequests(t *testing.T) {
 		t.Fatal(err)
 	}
 	cols := []collection.Collection{{
-		Name: "captures",
+		Name:      "captures",
 		Variables: map[string]string{"base": srv.URL},
 		Requests: []config.Request{
 			{Method: "GET", URL: "{{base}}/token", ExpectedStatus: 200, Captures: map[string]string{"token": "token"}},
