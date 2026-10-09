@@ -42,20 +42,16 @@ func highlightJSON(src string) string {
 				i++
 			}
 			token := string(runes[start:i])
-			style := jsonStringStyle
-			if i < len(runes) && runes[i] == ':' {
-				style = jsonKeyStyle
-			} else {
-				// Look ahead past whitespace for a colon to detect object keys.
-				j := i
-				for j < len(runes) && (runes[j] == ' ' || runes[j] == '\t') {
-					j++
-				}
-				if j < len(runes) && runes[j] == ':' {
-					style = jsonKeyStyle
-				}
+			// Look ahead past whitespace for a colon to detect object keys.
+			j := i
+			for j < len(runes) && (runes[j] == ' ' || runes[j] == '\t') {
+				j++
 			}
-			b.WriteString(style.Render(token))
+			if j < len(runes) && runes[j] == ':' {
+				b.WriteString(jsonKeyStyle.Render(token))
+			} else {
+				b.WriteString(jsonStringStyle.Render(token))
+			}
 		case c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',':
 			b.WriteString(jsonPunctuationStyle.Render(string(c)))
 			i++
@@ -101,18 +97,9 @@ func prettyJSON(src string) string {
 	if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
 		return src
 	}
-	var buf strings.Builder
-	if err := jsonIndent(&buf, []byte(trimmed)); err != nil {
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, []byte(trimmed), "", "  "); err != nil {
 		return src
 	}
 	return buf.String()
-}
-
-func jsonIndent(dst *strings.Builder, src []byte) error {
-	var buf bytes.Buffer
-	if err := json.Indent(&buf, src, "", "  "); err != nil {
-		return err
-	}
-	_, err := dst.WriteString(buf.String())
-	return err
 }

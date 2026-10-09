@@ -21,8 +21,9 @@ func (m Model) View() string {
 	}
 	if m.termWidth < minWidth || m.termHeight < minHeight {
 		return lipgloss.Place(m.termWidth, m.termHeight, lipgloss.Center, lipgloss.Center,
-			statusYellowStyle.Render(fmt.Sprintf("Terminal too small (%dx%d)\nResize to at least %dx%d",
-				m.termWidth, m.termHeight, minWidth, minHeight)))
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#DCDCAA")).Render(
+				fmt.Sprintf("Terminal too small (%dx%d)\nResize to at least %dx%d",
+					m.termWidth, m.termHeight, minWidth, minHeight)))
 	}
 
 	switch m.modal {
@@ -50,7 +51,7 @@ func (m Model) View() string {
 		m.renderHeaderLine(),
 		"",
 		lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right),
-		dimStyle.Render(strings.Repeat("─", m.termWidth)),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render(strings.Repeat("─", m.termWidth)),
 		m.renderFooter(),
 	}, "\n")
 	return fixBox(out, m.termWidth, m.termHeight)
@@ -70,7 +71,7 @@ func (m Model) renderRightPane() string {
 
 // renderURLBar renders brand, method tag, standalone URL box, and Send button.
 func (m Model) renderURLBar() string {
-	brand := dimStyle.Render("PostBoy")
+	brand := lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render("PostBoy")
 	method := lipgloss.NewStyle().
 		Foreground(methodColor(m.method)).
 		Bold(true).
@@ -95,12 +96,12 @@ func (m Model) renderURLBar() string {
 
 // renderHeaderLine shows request title + status on the left, env pill on the right.
 func (m Model) renderHeaderLine() string {
-	title := lipgloss.NewStyle().Foreground(textPrimary).Bold(true).Render(m.requestTitle())
+	title := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Bold(true).Render(m.requestTitle())
 
 	var meta string
 	switch {
 	case m.statusErr:
-		meta = statusRedStyle.Render(m.status)
+		meta = lipgloss.NewStyle().Foreground(lipgloss.Color("#F48771")).Render(m.status)
 	case m.statusCode != 0:
 		parts := []string{fmt.Sprintf("%d %s", m.statusCode, http.StatusText(m.statusCode))}
 		if m.responseTime > 0 {
@@ -108,7 +109,7 @@ func (m Model) renderHeaderLine() string {
 		}
 		meta = statusStyle(m.statusCode).Render(strings.Join(parts, " • "))
 	case m.status != "" && m.status != "Ready":
-		meta = statusGreenStyle.Render(m.status)
+		meta = lipgloss.NewStyle().Foreground(lipgloss.Color("#4EC9B0")).Render(m.status)
 	}
 	left := title
 	if meta != "" {
@@ -116,7 +117,12 @@ func (m Model) renderHeaderLine() string {
 	}
 	left = truncate(left, m.termWidth/2)
 
-	env := envBadgeStyle.Render("• " + m.env().Name)
+	env := lipgloss.NewStyle().
+		Background(lipgloss.Color("#007ACC")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 1).
+		Render("• " + m.env().Name)
 	return fitRow(left, env, m.termWidth)
 }
 
@@ -148,7 +154,7 @@ func (m Model) renderResponsePanel(width, height int) string {
 	}
 	var content string
 	if m.resTab == resTabBody && m.respBody == "" && !m.loading && m.statusCode == 0 {
-		content = "\n" + dimStyle.Render("Response will appear here") + "\n\n" +
+		content = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render("Response will appear here") + "\n\n" +
 			helpStyle.Render("Press Enter in the URL bar or Alt+R to send")
 	} else {
 		content = m.viewport.View()
@@ -219,7 +225,7 @@ func (m Model) renderRequestTabs() string {
 	var out []string
 	for _, t := range tabs {
 		if t.tab == reqTabBody && !m.supportsBody() {
-			out = append(out, inactiveTabStyle.Foreground(textMuted).Render(t.name))
+			out = append(out, inactiveTabStyle.Foreground(lipgloss.Color("#6E6E6E")).Render(t.name))
 			continue
 		}
 		out = append(out, m.tabStyle(m.reqTab == t.tab, m.focus == focusReqTabs).Render(t.name))

@@ -75,14 +75,17 @@ var (
 			BorderForeground(borderColor).
 			Padding(0, 1)
 
-	// panelStyle has no background: inner styled segments emit their own
-	// resets, which caused patchy backgrounds.
+	// panelStyle has no background: inner styled segments emit resets and
+	// cause patchy backgrounds.
 	panelStyle = lipgloss.NewStyle().
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor)
 
-	focusedPanelStyle = panelStyle.BorderForeground(postmanOrange)
+	focusedPanelStyle = lipgloss.NewStyle().
+				Padding(0, 1).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(postmanOrange)
 
 	statusGreenStyle  = lipgloss.NewStyle().Foreground(statusSuccess)
 	statusRedStyle    = lipgloss.NewStyle().Foreground(statusError)
@@ -138,20 +141,14 @@ func methodColor(method string) lipgloss.Color {
 	}
 }
 
-// methodBadge renders an uppercase, bold method badge like `[GET]`.
-func methodBadge(method string) string {
-	c := methodColor(method)
-	return lipgloss.NewStyle().Bold(true).Foreground(c).Render("[" + strings.ToUpper(method) + "]")
-}
-
 // statusStyle picks a colour for an HTTP status code.
 func statusStyle(code int) lipgloss.Style {
 	switch {
 	case code >= 400 || code == 0:
-		return statusRedStyle
+		return lipgloss.NewStyle().Foreground(statusError)
 	case code >= 300:
-		return statusYellowStyle
+		return lipgloss.NewStyle().Foreground(statusWarn)
 	default:
-		return statusGreenStyle
+		return lipgloss.NewStyle().Foreground(statusSuccess)
 	}
 }
