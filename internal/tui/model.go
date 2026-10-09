@@ -176,14 +176,18 @@ func New(opts Options) Model {
 	ti.Placeholder = "https://api.example.com/users"
 	ti.CharLimit = 4096
 	ti.Prompt = ""
+	ti.TextStyle = urlInputTextStyle
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(textSecondary)
 	ti.Focus()
 
 	bi := textarea.New()
 	bi.Placeholder = "{\n  \"key\": \"value\"\n}"
+	bi.Prompt = ""
 	bi.ShowLineNumbers = false
 	bi.CharLimit = 0
 	bi.MaxHeight = 0
+	bi.FocusedStyle.CursorLine = lipgloss.NewStyle()
+	bi.BlurredStyle.CursorLine = lipgloss.NewStyle()
 	bi.FocusedStyle.Placeholder = lipgloss.NewStyle().Foreground(textSecondary)
 
 	si := textinput.New()
@@ -462,26 +466,26 @@ func (m *Model) cycleMethod() {
 func (m *Model) usableWidth() int { return max(m.termWidth-4, 20) }
 
 const (
-	paneHeadRows   = 3
-	chromeRows     = 12
-	bodyChromeRows = 2
+	paneHeadRows   = 2
+	chromeRows     = 9
+	bodyChromeRows = 3
 	methodW        = 9
-	sendW          = 14
-	urlChromeW     = 33
 )
 
 // columnWidths returns the inner widths for the two panes: requests left,
-// responses right. leftW + rightW = termWidth - 5 (1 space + 2 borders each).
+// responses right. leftW + rightW + 1 (divider) = termWidth - frame (4).
 func (m *Model) columnWidths() (int, int) {
-	w := max(m.termWidth-5, 48)
-	left := max((w-1)/2, 24)
-	right := max(w-left-1, 24)
+	innerW := frameStyle.GetHorizontalFrameSize()
+	w := max(m.termWidth-innerW-1, 48)
+	left := max(w/2, 24)
+	right := max(w-left, 24)
 	return left, right
 }
 
 // panelHeight returns the inner content height for the main panels.
 func (m *Model) panelHeight() int {
-	return max(m.termHeight-chromeRows, 3)
+	innerH := frameStyle.GetVerticalFrameSize()
+	return max(m.termHeight-innerH-chromeRows, 3)
 }
 
 // layout sizes stateful components. It runs in Update (never View) so sizes
@@ -494,8 +498,7 @@ func (m *Model) layout() {
 	m.bodyInput.SetWidth(max(inner, 8))
 	m.bodyInput.SetHeight(max(ph-bodyChromeRows, 1))
 	m.viewport.Width = max(rightW-2, 8)
-	m.viewport.Height = max(ph, 1)
-	m.urlInput.Width = max(m.termWidth-urlChromeW, 10)
+	m.viewport.Height = max(ph-1, 1)
 
 	m.headers.setWidth(inner)
 	m.params.setWidth(inner)
@@ -503,6 +506,22 @@ func (m *Model) layout() {
 	m.auth.input.Width = max(inner-18, 10)
 	m.bodyFileInput.Width = max(inner-4, 10)
 	m.envVars.setWidth(max(m.termWidth-20, 30))
+
+	m.urlInput.Width = max(m.termWidth-frameStyle.GetHorizontalFrameSize()-m.urlChromeWidth()-4, 10)
+}
+
+// urlChromeWidth measures the rendered siblings in the URL bar using the
+// exact same strings renderURLBar uses, so the input gets the remainder.
+func (m *Model) urlChromeWidth() int {
+	parts := m.renderURLBarParts()
+	return lipgloss.Width(parts.brand) + lipgloss.Width(parts.method) + lipgloss.Width(parts.send) + 3 // 3 gaps
+}
+
+// sendButtonWidth returns the width of the wider of the two button labels.
+func (m Model) sendButtonWidth() int {
+	send := lipgloss.Width(sendButtonStyle.Render(" Send "))
+	loading := lipgloss.Width(sendButtonLoadingStyle.Render(" Loading... "))
+	return max(send, loading)
 }
 
 // syncViewport loads the active response tab's content into the viewport

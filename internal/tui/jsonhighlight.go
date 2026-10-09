@@ -10,17 +10,30 @@ import (
 
 var (
 	jsonKeyStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("#9CDCFE"))
-	jsonStringStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6C37"))
-	jsonNumberStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#00B894"))
-	jsonBoolStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#A855F7"))
+	jsonStringStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#CE9178"))
+	jsonNumberStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#B5CEA8"))
+	jsonBoolStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#569CD6"))
+	jsonStateValueStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#4EC9B0"))
 	jsonPunctuationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#858585"))
 )
+
+// isStateKey reports whether a JSON object key is a state/status field
+// whose string values should be highlighted in teal.
+func isStateKey(key string) bool {
+	key = strings.Trim(key, "\"")
+	switch key {
+	case "state", "status":
+		return true
+	}
+	return false
+}
 
 // highlightJSON colorizes JSON tokens with a small, dependency-free tokenizer.
 func highlightJSON(src string) string {
 	var b strings.Builder
 	runes := []rune(src)
 	i := 0
+	var currentKey string
 	for i < len(runes) {
 		c := runes[i]
 		switch {
@@ -48,9 +61,14 @@ func highlightJSON(src string) string {
 				j++
 			}
 			if j < len(runes) && runes[j] == ':' {
+				currentKey = token
 				b.WriteString(jsonKeyStyle.Render(token))
 			} else {
-				b.WriteString(jsonStringStyle.Render(token))
+				if isStateKey(currentKey) {
+					b.WriteString(jsonStateValueStyle.Render(token))
+				} else {
+					b.WriteString(jsonStringStyle.Render(token))
+				}
 			}
 		case c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',':
 			b.WriteString(jsonPunctuationStyle.Render(string(c)))

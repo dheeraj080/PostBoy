@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const (
 	minWidth  = 80
-	minHeight = 20
+	minHeight = 24
 )
 
 // View implements tea.Model. It must not mutate component sizes; see layout.
@@ -46,52 +47,76 @@ func (m Model) View() string {
 	left := m.renderLeftPane()
 	right := m.renderRightPane()
 
-	out := strings.Join([]string{
+	content := strings.Join([]string{
 		m.renderURLBar(),
 		m.renderHeaderLine(),
-		"",
-		lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right),
-		lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render(strings.Repeat("─", m.termWidth)),
+		lipgloss.JoinHorizontal(lipgloss.Top, left, right),
+		lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", m.termWidth-frameStyle.GetHorizontalFrameSize())),
 		m.renderFooter(),
 	}, "\n")
-	return fixBox(out, m.termWidth, m.termHeight)
+	return frameStyle.Width(m.termWidth - 2).Height(m.termHeight - 2).Render(content)
 }
 
 func (m Model) renderLeftPane() string {
 	leftW, _ := m.columnWidths()
-	head := fixBox(m.renderRequestTabs(), leftW+2, paneHeadRows)
+	head := fixBox(tabBarStyle.Render(m.renderRequestTabs(leftW)), leftW, paneHeadRows)
 	return lipgloss.JoinVertical(lipgloss.Left, head, m.renderRequestPanel(leftW, m.panelHeight()))
 }
 
 func (m Model) renderRightPane() string {
 	_, rightW := m.columnWidths()
-	head := fixBox(m.renderResponseHeader(), rightW+2, paneHeadRows)
-	return lipgloss.JoinVertical(lipgloss.Left, head, m.renderResponsePanel(rightW, m.panelHeight()))
+	style := rightPaneStyle
+	if m.focus == focusResContent {
+		style = focusedRightPaneStyle
+	}
+	head := m.renderResponseHeader(rightW)
+	panel := m.renderResponsePanel()
+	column := lipgloss.JoinVertical(lipgloss.Left, head, panel)
+	return style.Width(rightW).Height(m.panelHeight()+paneHeadRows).Render(column)
 }
 
-// renderURLBar renders brand, method tag, standalone URL box, and Send button.
-func (m Model) renderURLBar() string {
-	brand := lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render("PostBoy")
+// urlBarParts holds the rendered parts of the URL bar so that both
+// urlChromeWidth and renderURLBar use the exact same strings.
+type urlBarParts struct {
+	brand  string
+	method string
+	send   string
+}
+
+func (m Model) renderURLBarParts() urlBarParts {
+	brand := lipgloss.NewStyle().Foreground(textSecondary).Render("PostBoy")
 	method := lipgloss.NewStyle().
 		Foreground(methodColor(m.method)).
 		Bold(true).
 		Width(methodW).
 		Align(lipgloss.Center).
 		Render("[" + strings.ToUpper(m.method) + "]")
+	w := lipgloss.Width("Send") + 4
+	top := lipgloss.NewStyle().Foreground(postmanOrange).Render(strings.Repeat("▄", w))
+	middle := sendButtonStyle.Render("Send")
+	bottom := lipgloss.NewStyle().Foreground(postmanOrange).Render(strings.Repeat("▀", w))
+	send := lipgloss.NewStyle().MarginLeft(1).Render(
+		lipgloss.JoinVertical(lipgloss.Left, top, middle, bottom))
+	return urlBarParts{brand: brand, method: method, send: send}
+}
+
+// renderURLBar renders brand, method tag, standalone URL box, and Send button.
+func (m Model) renderURLBar() string {
+	parts := m.renderURLBarParts()
+
+	innerW := m.termWidth - frameStyle.GetHorizontalFrameSize()
+	urlBoxWidth := innerW - lipgloss.Width(parts.brand) - lipgloss.Width(parts.method) - 2 - lipgloss.Width(parts.send)
 
 	urlBoxStyle := urlBoxStyle
 	if m.focus == focusURL {
 		urlBoxStyle = focusedURLBoxStyle
 	}
+	urlBoxStyle = urlBoxStyle.Width(urlBoxWidth - urlBoxStyle.GetHorizontalBorderSize())
+	m.urlInput.Width = urlBoxWidth - urlBoxStyle.GetHorizontalBorderSize() - urlBoxStyle.GetHorizontalPadding() - 1
 	urlBox := urlBoxStyle.Render(m.urlInput.View())
 
-	send := sendButtonStyle.Render(" Send ")
-	if m.loading {
-		send = sendButtonLoadingStyle.Render(" Loading... ")
-	}
-	send = lipgloss.NewStyle().Width(sendW).Align(lipgloss.Center).Render(send)
-
-	return lipgloss.JoinHorizontal(lipgloss.Center, brand, " ", method, " ", urlBox, " ", send)
+	bar := lipgloss.JoinHorizontal(lipgloss.Center, urlBox, parts.send)
+	return lipgloss.JoinHorizontal(lipgloss.Center, parts.brand, " ", parts.method, " ", bar)
 }
 
 // renderHeaderLine shows request title + status on the left, env pill on the right.
@@ -115,7 +140,7 @@ func (m Model) renderHeaderLine() string {
 	if meta != "" {
 		left += "  " + meta
 	}
-	left = truncate(left, m.termWidth/2)
+	left = ansi.Truncate(left, m.termWidth/2, "…")
 
 	env := lipgloss.NewStyle().
 		Background(lipgloss.Color("#007ACC")).
@@ -123,7 +148,13 @@ func (m Model) renderHeaderLine() string {
 		Bold(true).
 		Padding(0, 1).
 		Render("• " + m.env().Name)
-	return fitRow(left, env, m.termWidth)
+	left = strings.ReplaceAll(left, "\n", " ")
+	env = strings.ReplaceAll(env, "\n", " ")
+	gap := m.termWidth - frameStyle.GetHorizontalFrameSize() - lipgloss.Width(left) - lipgloss.Width(env)
+	if gap < 1 {
+		gap = 1
+	}
+	return left + spaces(gap) + env
 }
 
 func (m Model) renderRequestPanel(width, height int) string {
@@ -147,11 +178,7 @@ func (m Model) renderRequestPanel(width, height int) string {
 	return style.Width(width).Height(height).MaxHeight(height + 2).Render(content)
 }
 
-func (m Model) renderResponsePanel(width, height int) string {
-	style := panelStyle
-	if m.focus == focusResContent {
-		style = focusedPanelStyle
-	}
+func (m Model) renderResponsePanel() string {
 	var content string
 	if m.resTab == resTabBody && m.respBody == "" && !m.loading && m.statusCode == 0 {
 		content = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#858585")).Render("Response will appear here") + "\n\n" +
@@ -159,14 +186,17 @@ func (m Model) renderResponsePanel(width, height int) string {
 	} else {
 		content = m.viewport.View()
 	}
-	return style.Width(width).Height(height).MaxHeight(height + 2).Render(content)
+	return content
 }
 
-// renderResponseHeader renders response tabs + quick actions, then meta/input.
-func (m Model) renderResponseHeader() string {
-	tabs := m.renderResponseTabs()
+// renderResponseHeader renders response tabs + actions + rule + status line.
+func (m Model) renderResponseHeader(paneW int) string {
+	innerW := paneW - 2
+	rule := lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", innerW))
+	tabs := m.renderResponseTabs(innerW)
 	actions := m.renderResponseQuickActions()
-	row1 := fitRow(tabs, actions, m.termWidth)
+	actions = helpStyle.Render(actions)
+	row1 := fitRow(tabs, actions, innerW)
 
 	var row2 string
 	if m.resp.inputMode != respInputNone {
@@ -188,7 +218,7 @@ func (m Model) renderResponseHeader() string {
 			row2 = statusStyle(m.statusCode).Render(strings.Join(parts, "  "))
 		}
 	}
-	return row1 + "\n" + row2
+	return row1 + "\n" + rule + "\n" + row2
 }
 
 func (m Model) renderResponseQuickActions() string {
@@ -212,7 +242,7 @@ func (m Model) renderResponseQuickActions() string {
 	return strings.Join(kept, "  ")
 }
 
-func (m Model) renderRequestTabs() string {
+func (m Model) renderRequestTabs(paneW int) string {
 	tabs := []struct {
 		tab  requestTab
 		name string
@@ -223,17 +253,33 @@ func (m Model) renderRequestTabs() string {
 		{reqTabBody, "BODY"},
 	}
 	var out []string
+	var filler []string
 	for _, t := range tabs {
 		if t.tab == reqTabBody && !m.supportsBody() {
-			out = append(out, inactiveTabStyle.Foreground(lipgloss.Color("#6E6E6E")).Render(t.name))
+			name := inactiveTabStyle.Foreground(lipgloss.Color("#6E6E6E")).Render(t.name)
+			out = append(out, name)
+			filler = append(filler, lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", lipgloss.Width(name))))
 			continue
 		}
-		out = append(out, m.tabStyle(m.reqTab == t.tab, m.focus == focusReqTabs).Render(t.name))
+		active := m.reqTab == t.tab
+		name := m.tabStyle(active, m.focus == focusReqTabs).Render(t.name)
+		out = append(out, name)
+		fg := borderColor
+		if active {
+			fg = postmanOrange
+		}
+		filler = append(filler, lipgloss.NewStyle().Foreground(fg).Render(strings.Repeat("─", lipgloss.Width(name))))
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Left, out...)
+	tabsRow := lipgloss.JoinHorizontal(lipgloss.Left, out...)
+	fillerRow := lipgloss.JoinHorizontal(lipgloss.Left, filler...)
+	fillerWidth := lipgloss.Width(fillerRow)
+	if fillerWidth < paneW {
+		fillerRow += lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", paneW-fillerWidth))
+	}
+	return tabsRow + "\n" + fillerRow
 }
 
-func (m Model) renderResponseTabs() string {
+func (m Model) renderResponseTabs(paneW int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Left,
 		m.tabStyle(m.resTab == resTabBody, m.focus == focusResTabs).Render("BODY"),
 		m.tabStyle(m.resTab == resTabHeaders, m.focus == focusResTabs).Render("HEADERS"))
@@ -244,7 +290,7 @@ func (m Model) tabStyle(active, barFocused bool) lipgloss.Style {
 		return inactiveTabStyle
 	}
 	if barFocused {
-		return activeTabStyle.Background(darkBg)
+		return activeTabStyle.Foreground(postmanOrange).Bold(true)
 	}
 	return activeTabStyle
 }
@@ -254,13 +300,15 @@ func (m Model) renderFooter() string {
 	var parts []string
 	for _, kb := range all {
 		h := kb.Help()
-		parts = append(parts, shortKey(h.Key)+" "+shortDesc(h.Desc))
+		parts = append(parts, footerKeyStyle.Render(shortKey(h.Key))+" "+footerDescStyle.Render(shortDesc(h.Desc)))
 	}
-	// Drop optional items from the left until everything fits.
-	for lipgloss.Width(strings.Join(parts, "   ")) > m.termWidth && len(parts) > 2 {
-		parts = parts[1:]
+	// Drop from the middle, keeping first (Send) and last (Quit).
+	innerW := frameStyle.GetHorizontalFrameSize()
+	for lipgloss.Width(strings.Join(parts, "   ")) > m.termWidth-innerW && len(parts) > 2 {
+		mid := len(parts) / 2
+		parts = append(parts[:mid], parts[mid+1:]...)
 	}
-	return fixBox(strings.Join(parts, "   "), m.termWidth, 1)
+	return fixBox(strings.Join(parts, "   "), m.termWidth-innerW, 1)
 }
 
 func shortKey(k string) string {

@@ -13,7 +13,7 @@ import (
 )
 
 func TestViewFillsTerminal(t *testing.T) {
-	sizes := [][2]int{{80, 20}, {80, 24}, {100, 30}, {120, 40}, {200, 60}}
+	sizes := [][2]int{{80, 24}, {100, 30}, {120, 40}, {200, 60}}
 	tabs := []requestTab{reqTabParams, reqTabAuth, reqTabHeaders, reqTabBody}
 	modes := config.BodyModes
 

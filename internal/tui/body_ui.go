@@ -79,13 +79,14 @@ func (m Model) renderBodyTab(width, height int) string {
 				content = m.bodyInput.View()
 			}
 		}
-		hint := "Ctrl+O: edit body in $EDITOR"
-		content += "\n" + helpStyle.Render(truncate(hint, width))
 	}
 
 	content = fixBox(content, width, innerH)
-	footer := fixBox("Interpolated at send time", width, 1)
-	return lipgloss.JoinVertical(lipgloss.Left, modeBar, content, footer)
+	rule := lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", width))
+	footer := fitRow(helpStyle.Render("Ctrl+O: edit body in $EDITOR"),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#9CDCFE")).Render("Interpolated at send time"),
+		width)
+	return lipgloss.JoinVertical(lipgloss.Left, modeBar, content, rule, footer)
 }
 
 func modeLabel(b config.BodyMode) string {

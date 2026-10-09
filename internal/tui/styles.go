@@ -33,14 +33,13 @@ var (
 			Background(postmanOrange).
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true).
-			Padding(0, 2).
-			MarginLeft(1)
+			Padding(0, 2)
 
 	sendButtonLoadingStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("#F48771")).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).
-				Padding(0, 2).
+				Padding(1, 2).
 				MarginLeft(1)
 
 	inactiveTabStyle = lipgloss.NewStyle().
@@ -50,19 +49,17 @@ var (
 	activeTabStyle = lipgloss.NewStyle().
 			Foreground(postmanOrange).
 			Bold(true).
-			Padding(0, 1).
-			BorderBottom(true).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(postmanOrange)
+			Padding(0, 1)
 
 	urlInputStyle = lipgloss.NewStyle().
-			Background(darkBg).
 			Padding(0, 1)
 
 	focusedURLInputStyle = urlInputStyle.Foreground(postmanOrange)
 
+	urlInputTextStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF"))
+
 	urlBoxStyle = lipgloss.NewStyle().
-			Background(darkBg).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor).
 			Padding(0, 1)
@@ -70,22 +67,41 @@ var (
 	focusedURLBoxStyle = urlBoxStyle.BorderForeground(postmanOrange)
 
 	mainHeaderStyle = lipgloss.NewStyle().
-			Background(darkBg).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor).
 			Padding(0, 1)
 
-	// panelStyle has no background: inner styled segments emit resets and
-	// cause patchy backgrounds.
+	// No backgrounds on panels, frame, or tab bar — inner styled segments
+	// emit \x1b[0m which resets to terminal default. Solid fills only on
+	// Send button, env badge, and selected-row highlight.
 	panelStyle = lipgloss.NewStyle().
-			Padding(0, 1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(borderColor)
+			Padding(0, 1)
 
 	focusedPanelStyle = lipgloss.NewStyle().
-				Padding(0, 1).
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(postmanOrange)
+			Padding(0, 1)
+
+	rightPaneStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderLeft(true).
+			BorderForeground(borderColor)
+
+	focusedRightPaneStyle = rightPaneStyle.BorderForeground(postmanOrange)
+
+	frameStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(borderColor).
+			Padding(0, 1)
+
+	tabBarStyle = lipgloss.NewStyle().
+			Padding(0, 1)
+
+	footerKeyStyle = lipgloss.NewStyle().
+			Foreground(postmanOrange).
+			Bold(true)
+
+	footerDescStyle = lipgloss.NewStyle().
+			Foreground(textMuted)
 
 	statusGreenStyle  = lipgloss.NewStyle().Foreground(statusSuccess)
 	statusRedStyle    = lipgloss.NewStyle().Foreground(statusError)
@@ -108,14 +124,12 @@ var (
 				MarginLeft(2)
 
 	actionPillStyle = lipgloss.NewStyle().
-			Background(darkBg).
 			Foreground(postmanOrange).
 			Bold(true).
 			Padding(0, 1).
 			MarginLeft(1)
 
 	quickActionStyle = lipgloss.NewStyle().
-				Background(borderColor).
 				Foreground(textPrimary).
 				Padding(0, 1).
 				MarginLeft(1)
