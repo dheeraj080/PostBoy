@@ -193,7 +193,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.CycleBodyMode):
 		m.cycleBodyMode()
 		return m, nil
-	case msg.String() == "ctrl+o" && m.focus == focusReqContent && m.reqTab == reqTabBody && m.supportsBody() && m.bodyMode == config.BodyRaw:
+	case msg.String() == "ctrl+d" && m.focus == focusReqContent && m.reqTab == reqTabBody && m.supportsBody() && m.bodyMode == config.BodyRaw:
 		return m, openBodyEditorCmd(m.bodyInput.Value())
 	case key.Matches(msg, m.keys.Help) && !m.isTyping():
 		m.modal = modalHelp
@@ -379,8 +379,8 @@ func formatResponseHeaders(h http.Header) string {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	keyStyle := lipgloss.NewStyle().Foreground(keyColor)
-	valStyle := lipgloss.NewStyle().Foreground(textSecondary)
+	keyStyle := lipgloss.NewStyle().Foreground(keyColor).Background(darkBg)
+	valStyle := lipgloss.NewStyle().Foreground(textSecondary).Background(darkBg)
 	var b strings.Builder
 	for _, k := range keys {
 		fmt.Fprintf(&b, "%s: %s\n", keyStyle.Render(k), valStyle.Render(strings.Join(h[k], ", ")))

@@ -194,7 +194,7 @@ func (l *kvList) View(focused bool, width, height int) string {
 		return b.String()
 	}
 
-	head := lipgloss.NewStyle().Bold(true).Foreground(textSecondary)
+	head := lipgloss.NewStyle().Bold(true).Foreground(textSecondary).Background(darkBg)
 	b.WriteString("  ")
 	b.WriteString(head.Width(keyCol).Render("KEY"))
 	b.WriteString(head.Width(valCol).Render("VALUE"))
@@ -249,8 +249,8 @@ func (l *kvList) renderRow(i int, focused bool, keyCol, valCol, fileCol int) str
 		prefix = cursorStyle.Render("▶ ")
 	}
 
-	keyStyle := lipgloss.NewStyle().Foreground(keyColor).Width(keyCol)
-	valStyle := lipgloss.NewStyle().Foreground(textPrimary).Width(valCol)
+	keyStyle := lipgloss.NewStyle().Foreground(keyColor).Background(darkBg).Width(keyCol)
+	valStyle := lipgloss.NewStyle().Foreground(textPrimary).Background(darkBg).Width(valCol)
 	enStyle := statusGreenStyle
 
 	if !it.Enabled {

@@ -76,6 +76,9 @@ func (m *Model) requestTitle() string {
 	title := "Untitled request"
 	if ci, ri := m.originCollection(); ri >= 0 {
 		title = m.collections[ci].Name + " › " + m.collections[ci].Requests[ri].Name
+	} else if m.requestName != "" {
+		// Named draft that is not linked to a saved request (demo mode).
+		title = m.requestName
 	}
 	if m.isDirty() {
 		title += " ●"

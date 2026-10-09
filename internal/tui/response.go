@@ -276,7 +276,10 @@ func (m *Model) refreshResponse(keepOffset bool) {
 			content = renderMatches(plain, v.matches, v.current)
 		}
 	}
-	m.viewport.SetContent(content)
+	// Pad every content line to the viewport width: the viewport's own
+	// filler/padding has no background, so a short line would show the
+	// terminal default after the last styled run.
+	m.viewport.SetContent(padLines(content, m.viewport.Width))
 	if keepOffset {
 		m.viewport.SetYOffset(offset)
 	} else {

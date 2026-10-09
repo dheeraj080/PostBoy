@@ -25,6 +25,7 @@ func main() {
 	}
 
 	showVersion := flag.Bool("version", false, "print version information and exit")
+	demo := flag.Bool("demo", false, "start with a canned request/response pair (no config, keychain or network)")
 	dataDir := flag.String("data-dir", "", "directory for config and history (default "+config.Dir()+")")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), `PostBoy - terminal HTTP client
@@ -49,6 +50,10 @@ Flags:
 	if dir == "" {
 		dir = config.Dir()
 	}
+	if *demo {
+		// Demo mode never touches the filesystem.
+		dir = ""
+	}
 
 	switch flag.Arg(0) {
 	case "":
@@ -70,7 +75,7 @@ Flags:
 		os.Exit(2)
 	}
 
-	p := tea.NewProgram(tui.New(tui.Options{Dir: dir, Version: version}), tea.WithAltScreen())
+	p := tea.NewProgram(tui.New(tui.Options{Dir: dir, Version: version, Demo: *demo}), tea.WithAltScreen())
 	final, err := p.Run()
 	if m, ok := final.(tui.Model); ok {
 		m.Close()

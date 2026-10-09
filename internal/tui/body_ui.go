@@ -43,7 +43,9 @@ func (m *Model) cycleBodyMode() {
 	m.setStatus("Body type: "+m.bodyMode.Label(), false)
 }
 
-// renderBodyTab renders the body editor for the current body mode.
+// renderBodyTab renders the body editor: the sub-tab row, the content
+// (JSON is syntax highlighted with two-space indent) and the hint row with
+// the external-editor hint and the interpolation note.
 func (m Model) renderBodyTab(width, height int) string {
 	if !m.supportsBody() {
 		return dimStyle.Render("No body for " + m.method + " requests")
@@ -82,11 +84,11 @@ func (m Model) renderBodyTab(width, height int) string {
 	}
 
 	content = fixBox(content, width, innerH)
-	rule := lipgloss.NewStyle().Foreground(borderColor).Render(strings.Repeat("─", width))
-	footer := fitRow(helpStyle.Render("Ctrl+O: edit body in $EDITOR"),
-		lipgloss.NewStyle().Foreground(lipgloss.Color("#9CDCFE")).Render("Interpolated at send time"),
+	ruleRow := rule(width)
+	footer := fitRow(helpStyle.Render("Ctrl+D: edit body in $EDITOR"),
+		lipgloss.NewStyle().Foreground(infoBlue).Background(darkBg).Render("Interpolated at send time"),
 		width)
-	return lipgloss.JoinVertical(lipgloss.Left, modeBar, content, rule, footer)
+	return modeBar + "\n" + content + "\n" + ruleRow + "\n" + footer
 }
 
 func modeLabel(b config.BodyMode) string {
@@ -119,20 +121,37 @@ func shortModeLabel(b config.BodyMode) string {
 	}
 }
 
+// renderBodyModeBar renders the body sub-tab row: full labels, the active
+// one orange and underlined, with the "Alt+T cycles type" hint right-aligned
+// (dropped when the pane is too narrow for it; short labels are the last
+// resort).
 func (m Model) renderBodyModeBar(width int) string {
-	var out []string
-	for _, b := range config.BodyModes {
-		label := modeLabel(b)
-		if width < 68 {
-			label = shortModeLabel(b)
+	bar := func(short bool) string {
+		var out []string
+		for _, b := range config.BodyModes {
+			label := modeLabel(b)
+			if short {
+				label = shortModeLabel(b)
+			}
+			if b == m.bodyMode {
+				out = append(out, activeSubTabStyle.Render(label))
+			} else {
+				out = append(out, inactiveSubTabStyle.Render(label))
+			}
 		}
-		if b == m.bodyMode {
-			out = append(out, activeTabStyle.Render(label))
-		} else {
-			out = append(out, inactiveTabStyle.Render(label))
-		}
+		return strings.Join(out, fill(1))
 	}
-	left := lipgloss.JoinHorizontal(lipgloss.Left, out...)
-	right := dimStyle.Render("Alt+T cycles type")
-	return fitRow(left, right, width)
+	hint := dimStyle.Render("Alt+T cycles type")
+	full := bar(false)
+	switch {
+	case lipgloss.Width(full)+1+lipgloss.Width(hint) <= width:
+		return fitRow(full, hint, width)
+	case lipgloss.Width(full) <= width:
+		return fitLine(full, width)
+	}
+	short := bar(true)
+	if lipgloss.Width(short)+1+lipgloss.Width(hint) <= width {
+		return fitRow(short, hint, width)
+	}
+	return fitLine(short, width)
 }

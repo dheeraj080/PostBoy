@@ -200,8 +200,8 @@ func (a *authEditor) View(focused bool, width int) string {
 		a.cursor = max(len(fields)-1, 0)
 	}
 
-	labelStyle := lipgloss.NewStyle().Foreground(textSecondary).Width(12)
-	valStyle := lipgloss.NewStyle().Foreground(textPrimary)
+	labelStyle := lipgloss.NewStyle().Foreground(textSecondary).Background(darkBg).Width(12)
+	valStyle := lipgloss.NewStyle().Foreground(textPrimary).Background(darkBg)
 
 	for i, f := range fields {
 		selected := focused && i == a.cursor

@@ -78,6 +78,10 @@ type Options struct {
 	Version string
 	// ExportDir is where collection exports are written (default: cwd).
 	ExportDir string
+	// Demo loads a canned request/response on startup instead of reading
+	// config, keychain and database from disk. Used by --demo and the
+	// golden test.
+	Demo bool
 }
 
 // Model is the root Bubble Tea model.
@@ -215,11 +219,15 @@ func New(opts Options) Model {
 		envInput:      newEnvInput(),
 		importInput:   newImportInput(),
 		focus:         focusURL,
-		reqTab:        reqTabHeaders,
+		reqTab:        reqTabBody,
 		resTab:        resTabBody,
 		status:        "Initializing...",
 	}
 	m.applyConfig(config.Default(), nil)
+	m.viewport.Style = lipgloss.NewStyle().Foreground(textPrimary).Background(darkBg)
+	if opts.Demo {
+		m.applyDemo()
+	}
 	return m
 }
 
@@ -232,11 +240,18 @@ func (m Model) Close() {
 	if m.ready {
 		_ = m.persistConfig()
 	}
-	_ = m.store.Close()
+	if m.store != nil {
+		_ = m.store.Close()
+	}
 }
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
+	if m.opts.Demo {
+		// Demo mode never touches the filesystem: the fixture is already in
+		// the model, and there is no cursor blink to keep output stable.
+		return nil
+	}
 	return tea.Batch(textinput.Blink, loadServices(m.opts.Dir))
 }
 
@@ -467,18 +482,16 @@ func (m *Model) usableWidth() int { return max(m.termWidth-4, 20) }
 
 const (
 	paneHeadRows   = 2
-	chromeRows     = 9
+	chromeRows     = 8
 	bodyChromeRows = 3
-	methodW        = 9
 )
 
 // columnWidths returns the inner widths for the two panes: requests left,
-// responses right. leftW + rightW + 1 (divider) = termWidth - frame (4).
+// responses right. left + right + 1 (divider) = termWidth - frame (4).
 func (m *Model) columnWidths() (int, int) {
-	innerW := frameStyle.GetHorizontalFrameSize()
-	w := max(m.termWidth-innerW-1, 48)
-	left := max(w/2, 24)
-	right := max(w-left, 24)
+	innerW := m.termWidth - frameStyle.GetHorizontalFrameSize()
+	left := max((innerW-1)/2, 24)
+	right := max(innerW-1-left, 24)
 	return left, right
 }
 
@@ -492,12 +505,12 @@ func (m *Model) panelHeight() int {
 // persist on the model and scrolling works.
 func (m *Model) layout() {
 	leftW, rightW := m.columnWidths()
-	inner := leftW - 2
+	inner := leftW - panelStyle.GetHorizontalPadding()
 	ph := m.panelHeight()
 
 	m.bodyInput.SetWidth(max(inner, 8))
 	m.bodyInput.SetHeight(max(ph-bodyChromeRows, 1))
-	m.viewport.Width = max(rightW-2, 8)
+	m.viewport.Width = max(rightW-rightPaneStyle.GetHorizontalPadding(), 8)
 	m.viewport.Height = max(ph-1, 1)
 
 	m.headers.setWidth(inner)
@@ -508,10 +521,15 @@ func (m *Model) layout() {
 	m.envVars.setWidth(max(m.termWidth-20, 30))
 
 	m.urlInput.Width = max(m.termWidth-frameStyle.GetHorizontalFrameSize()-m.urlChromeWidth()-4, 10)
+
+	// The response body may have to be re-wrapped for the new width.
+	if m.resp.hasBody() {
+		m.refreshResponse(true)
+	}
 }
 
 // urlChromeWidth measures the rendered siblings in the URL bar using the
-// exact same strings renderURLBar uses, so the input gets the remainder.
+// exact same strings renderURLBar uses, so the box gets the remainder.
 func (m *Model) urlChromeWidth() int {
 	parts := m.renderURLBarParts()
 	return lipgloss.Width(parts.brand) + lipgloss.Width(parts.method) + lipgloss.Width(parts.send) + 3 // 3 gaps
@@ -519,8 +537,8 @@ func (m *Model) urlChromeWidth() int {
 
 // sendButtonWidth returns the width of the wider of the two button labels.
 func (m Model) sendButtonWidth() int {
-	send := lipgloss.Width(sendButtonStyle.Render(" Send "))
-	loading := lipgloss.Width(sendButtonLoadingStyle.Render(" Loading... "))
+	send := lipgloss.Width(sendButtonStyle.Render("Send"))
+	loading := lipgloss.Width(sendButtonLoadingStyle.Render("Loading..."))
 	return max(send, loading)
 }
 
